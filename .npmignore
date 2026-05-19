@@ -1,0 +1,15 @@
+src/
+tests/
+bin/
+.github/
+.idea/
+.vscode/
+coverage/
+*.tsbuildinfo
+*.test.ts
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+eslint.config.js
+.prettierrc.json
+.gitignore

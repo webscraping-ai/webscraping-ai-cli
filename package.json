@@ -1,0 +1,71 @@
+{
+  "name": "webscraping-ai-cli",
+  "version": "1.0.0",
+  "description": "Official command-line client for the WebScraping.AI API. Includes a Claude Code skill so AI agents can use it too.",
+  "type": "module",
+  "bin": {
+    "webscraping-ai": "./dist/cli.js",
+    "wsai": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "plugins",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "smoke": "tsx bin/smoke.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "webscraping",
+    "scraping",
+    "cli",
+    "api",
+    "llm",
+    "agent",
+    "claude",
+    "claude-code",
+    "skill"
+  ],
+  "license": "MIT",
+  "author": "WebScraping.AI",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/webscraping-ai/webscraping-ai-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/webscraping-ai/webscraping-ai-cli/issues"
+  },
+  "homepage": "https://github.com/webscraping-ai/webscraping-ai-cli#readme",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "webscraping-ai": "^4.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^17.6.0",
+    "prettier": "^3.4.2",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

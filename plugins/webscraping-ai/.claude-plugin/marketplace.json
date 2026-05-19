@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-marketplace.json",
+  "name": "webscraping-ai",
+  "owner": {
+    "name": "WebScraping.AI",
+    "url": "https://webscraping.ai"
+  },
+  "plugins": [
+    {
+      "name": "webscraping-ai",
+      "description": "WebScraping.AI CLI skill: fetch HTML, text, selected elements, or AI-extracted data from any URL — including JS-rendered pages.",
+      "version": "1.0.0",
+      "source": ".",
+      "skills": ["./skills/webscraping-ai"]
+    }
+  ]
+}
