@@ -7,6 +7,15 @@ description: Use the WebScraping.AI CLI to fetch HTML, plain text, or AI-extract
 
 This skill teaches you to use the `webscraping-ai` CLI — the official command-line client for the WebScraping.AI API. It handles JS rendering, residential proxies, and per-country geolocation, and exposes two AI-powered endpoints (`ask`, `extract`) for one-shot question-answering and structured data extraction from any web page.
 
+## Getting the CLI
+
+This skill runs the `webscraping-ai` command. If it isn't already on your `PATH` (check with `webscraping-ai --version`), use one of:
+
+- **Install once (recommended):** `npm install -g webscraping-ai-cli`
+- **Zero-install per call:** prefix any command below with `npx -y webscraping-ai-cli` instead of `webscraping-ai` — e.g. `npx -y webscraping-ai-cli html https://example.com`.
+
+Both require Node.js 20+. The `npx` form is the safe fallback when you can't install globally.
+
 ## When to use this skill
 
 Reach for `webscraping-ai` when you need to:

@@ -9,6 +9,7 @@
   },
   "files": [
     "dist",
+    ".claude-plugin",
     "plugins",
     "README.md",
     "CHANGELOG.md",
