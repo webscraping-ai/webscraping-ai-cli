@@ -26,10 +26,8 @@ export function selectedMultipleCommand(): Command {
   addCommonScrapeOptions(cmd);
 
   cmd.action(async (url: string, opts: SelectedMultipleFlags) => {
+    // `--selector` is optional: omitting it returns whole-page HTML.
     const selectors = opts.selector ?? [];
-    if (selectors.length === 0) {
-      throw new Error('at least one --selector is required');
-    }
     const apiKey = await resolveApiKey({ flag: opts.apiKey });
     const headers = await parseHeaders(opts.headers);
     const client = createClient({ apiKey, requestTimeoutMs: opts.timeout });

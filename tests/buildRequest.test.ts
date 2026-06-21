@@ -99,6 +99,12 @@ describe('buildSelectedOptions', () => {
     const result = buildSelectedOptions('https://example.com', 'h1', { format: 'text' }, {});
     expect(result).toEqual({ url: 'https://example.com', selector: 'h1', format: 'text' });
   });
+
+  it('omits selector when none given (whole-page HTML)', () => {
+    const result = buildSelectedOptions('https://example.com', undefined, {}, {});
+    expect(result).toEqual({ url: 'https://example.com' });
+    expect(result).not.toHaveProperty('selector');
+  });
 });
 
 describe('buildSelectedMultipleOptions', () => {
@@ -112,10 +118,10 @@ describe('buildSelectedMultipleOptions', () => {
     expect(result).toEqual({ url: 'https://example.com', selectors: ['h1', '.price'] });
   });
 
-  it('throws if no selectors given', () => {
-    expect(() => buildSelectedMultipleOptions('https://example.com', [], {}, {})).toThrow(
-      /at least one/,
-    );
+  it('omits selectors when none given (whole-page HTML)', () => {
+    const result = buildSelectedMultipleOptions('https://example.com', [], {}, {});
+    expect(result).toEqual({ url: 'https://example.com' });
+    expect(result).not.toHaveProperty('selectors');
   });
 });
 

@@ -81,13 +81,17 @@ export function buildTextOptions(
 
 export function buildSelectedOptions(
   url: string,
-  selector: string,
+  selector: string | undefined,
   flags: CommonRawFlags,
   resolved: ResolvedCommonOptions,
 ): SelectedOptions {
-  const out: SelectedOptions = { url, selector, ...buildCommonOptions(flags, resolved) };
+  // `selector` is optional per the OpenAPI spec: omitting it returns the
+  // whole-page HTML. Only attach it when provided. (The installed SDK types
+  // still mark it required, so build the object as a partial and cast.)
+  const out: Partial<SelectedOptions> = { url, ...buildCommonOptions(flags, resolved) };
+  if (selector !== undefined) out.selector = selector;
   if (flags.format) out.format = flags.format;
-  return out;
+  return out as SelectedOptions;
 }
 
 export function buildSelectedMultipleOptions(
@@ -96,10 +100,12 @@ export function buildSelectedMultipleOptions(
   flags: CommonRawFlags,
   resolved: ResolvedCommonOptions,
 ): SelectedMultipleOptions {
-  if (selectors.length === 0) {
-    throw new Error('selected-multiple requires at least one --selector');
-  }
-  return { url, selectors, ...buildCommonOptions(flags, resolved) };
+  // `selectors` is optional per the OpenAPI spec: omitting it returns the
+  // whole-page HTML. Only attach it when non-empty. (The installed SDK types
+  // still mark it required, so build the object as a partial and cast.)
+  const out: Partial<SelectedMultipleOptions> = { url, ...buildCommonOptions(flags, resolved) };
+  if (selectors.length > 0) out.selectors = selectors;
+  return out as SelectedMultipleOptions;
 }
 
 export function buildQuestionOptions(

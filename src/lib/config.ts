@@ -48,6 +48,11 @@ export async function writePersistedConfig(config: PersistedConfig): Promise<voi
   const path = configPath();
   await fs.mkdir(dirname(path), { recursive: true });
   await fs.writeFile(path, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
+  // `mode` above only applies when the file is freshly created; an existing
+  // file keeps its old (possibly world-readable) perms. Enforce 0600
+  // unconditionally — chmod on a just-written file is cheap and idempotent.
+  // No-op on Windows, but harmless.
+  await fs.chmod(path, 0o600);
 }
 
 export async function clearPersistedConfig(): Promise<boolean> {

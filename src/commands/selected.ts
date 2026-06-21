@@ -16,13 +16,15 @@ export function selectedCommand(): Command {
   const cmd = new Command('selected')
     .description('Fetch HTML of one CSS-selected page area')
     .argument('<url>', 'page URL (or `-` to read URLs from stdin)')
-    .requiredOption('-s, --selector <css>', 'CSS selector for the target element(s)')
+    .option(
+      '-s, --selector <css>',
+      'CSS selector for the target element(s); omit for whole-page HTML',
+    )
     .addOption(new Option('--format <fmt>', 'response wrapping').choices(['text', 'json']));
 
   addCommonScrapeOptions(cmd);
 
   cmd.action(async (url: string, opts: SelectedFlags) => {
-    if (!opts.selector) throw new Error('--selector is required');
     const apiKey = await resolveApiKey({ flag: opts.apiKey });
     const headers = await parseHeaders(opts.headers);
     const client = createClient({ apiKey, requestTimeoutMs: opts.timeout });
