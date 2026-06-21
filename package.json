@@ -1,6 +1,6 @@
 {
   "name": "webscraping-ai-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Official command-line client for the WebScraping.AI API. Includes a Claude Code skill so AI agents can use it too.",
   "type": "module",
   "bin": {
