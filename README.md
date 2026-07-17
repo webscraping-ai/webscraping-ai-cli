@@ -1,6 +1,9 @@
 # webscraping-ai-cli
 
-Official command-line client for the [WebScraping.AI](https://webscraping.ai) API. Fetch HTML, plain text, AI-extracted data, or single CSS selections from any URL — with JavaScript rendering, residential / stealth proxies, and per-country geolocation.
+[![npm](https://img.shields.io/npm/v/webscraping-ai-cli.svg)](https://www.npmjs.com/package/webscraping-ai-cli)
+[![CI](https://github.com/webscraping-ai/webscraping-ai-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/webscraping-ai/webscraping-ai-cli/actions/workflows/ci.yml)
+
+Official command-line client for the [WebScraping.AI](https://webscraping.ai) API. Fetch HTML, plain text, AI-extracted data, or single CSS selections from any URL — with JavaScript rendering, residential / stealth proxies, and per-country geolocation. See the [API documentation](https://webscraping.ai/docs) for the full parameter reference.
 
 Ships with an **AI agent skill** that you can install into Claude Code, Cursor, Windsurf, Kiro, OpenCode, Gemini CLI, GitHub Copilot, Augment, or Factory — your coding agent learns when and how to use the CLI for live page fetches.
 
@@ -15,6 +18,10 @@ npx -y webscraping-ai-cli --help
 The package exposes two executables: `webscraping-ai` (primary) and `wsai` (short alias).
 
 ## Authenticate
+
+[Sign up](https://webscraping.ai/auth/sign_up) to get an API key — the free
+trial includes 2,000 credits, no credit card required. Your key lives in the
+[dashboard](https://webscraping.ai/dashboard).
 
 Pick one:
 
@@ -114,6 +121,14 @@ cat urls.txt | webscraping-ai extract - \
 # Headers from a file
 webscraping-ai html https://example.com --headers @./headers.json
 ```
+
+## Links
+
+- [WebScraping.AI](https://webscraping.ai) — features, pricing, signup
+- [API documentation](https://webscraping.ai/docs)
+- [Dashboard](https://webscraping.ai/dashboard) — API key, usage, request builder
+- Other official clients: [Python](https://github.com/webscraping-ai/webscraping-ai-python) · [JavaScript](https://github.com/webscraping-ai/webscraping-ai-js) · [Ruby](https://github.com/webscraping-ai/webscraping-ai-ruby) · [PHP](https://github.com/webscraping-ai/webscraping-ai-php) · [Go](https://github.com/webscraping-ai/webscraping-ai-go) · [Java](https://github.com/webscraping-ai/webscraping-ai-java) · [.NET](https://github.com/webscraping-ai/webscraping-ai-dotnet) · [MCP server](https://github.com/webscraping-ai/webscraping-ai-mcp-server) · [n8n node](https://github.com/webscraping-ai/webscraping-ai-n8n)
+- Support: [support@webscraping.ai](mailto:support@webscraping.ai)
 
 ## License
 
