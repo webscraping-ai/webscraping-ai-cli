@@ -4,7 +4,7 @@ import { buildSelectedMultipleOptions } from '../lib/buildRequest.js';
 import { resolveApiKey } from '../lib/config.js';
 import { addCommonScrapeOptions, parseHeaders } from '../lib/options.js';
 import type { CommonRawFlags } from '../lib/options.js';
-import { createEmitter } from '../lib/output.js';
+import { openEmitter } from '../lib/output.js';
 import { createClient } from '../lib/sdk.js';
 import { urlIterator } from '../lib/stdin.js';
 
@@ -32,7 +32,7 @@ export function selectedMultipleCommand(): Command {
     const headers = await parseHeaders(opts.headers);
     const client = createClient({ apiKey, requestTimeoutMs: opts.timeout });
 
-    const write = createEmitter(opts);
+    const write = await openEmitter(opts, url);
 
     for await (const target of urlIterator(url)) {
       const sdkOptions = buildSelectedMultipleOptions(target, selectors, opts, { headers });

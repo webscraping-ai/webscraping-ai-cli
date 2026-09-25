@@ -1,17 +1,20 @@
 #!/usr/bin/env tsx
 /**
  * Hand-run smoke test that exercises every CLI subcommand against the live
- * API. Not part of the test suite — costs ~31 credits per full sweep: the
+ * API. Not part of the test suite — costs ~46 credits per full sweep: the
  * page commands run with `--no-js --proxy datacenter`, so html/text/selected/
- * selected-multiple are 1 credit each (4), ask/extract 6 each (12), and
- * `serp` a flat 15. `account` is free.
+ * selected-multiple are 1 credit each (4), ask/extract 6 each (12), `serp` a
+ * flat 15 and one YouTube `data` call a flat 15. `account` is free, and so is
+ * `data https://example.com/`, which must exit 3 (server 400): it proves the
+ * server, not the CLI, rejects unsupported sites.
  *
  * Usage:
  *   WEBSCRAPING_AI_API_KEY=... npm run smoke
  *
  * The script spawns the *built* CLI from `dist/cli.js` (run `npm run build`
- * first). Each case must exit 0 (a signal-killed child is a failure), write
- * non-empty output, and pass its `check` — so wrong results (e.g. an empty
+ * first). Each case must exit 0 (or its `expectExit`; a signal-killed child
+ * is a failure), write non-empty output when it expects 0, and pass its
+ * `check` — so wrong results (e.g. an empty
  * SERP or `[[]]` from selected-multiple) fail, not just crashes. FAIL lines
  * never print the API key.
  */
@@ -35,14 +38,17 @@ if (!existsSync(cliPath)) {
 interface Case {
   name: string;
   args: string[];
+  /** Expected exit code (default 0). Non-zero cases skip the non-empty-stdout check. */
+  expectExit?: number;
   /** Return an error string if the output is wrong, or undefined if it's fine. */
-  check?: (out: string) => string | undefined;
+  check?: (out: string, err: string) => string | undefined;
 }
 
 const target = 'https://example.com';
 const serpQuery = 'coffee machines';
+const dataUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 // Page commands: no JS + datacenter proxy, so each is billed at 1 credit
-// (6 for ask/extract) and the ~31-credit sweep estimate holds.
+// (6 for ask/extract) and the ~46-credit sweep estimate holds.
 const cheap = ['--no-js', '--proxy', 'datacenter'];
 
 function parseJson(out: string): unknown {
@@ -68,6 +74,34 @@ const cases: Case[] = [
       }
       return undefined;
     },
+  },
+  {
+    name: 'data',
+    args: ['data', dataUrl, '--no-pretty'],
+    check: (out) => {
+      const r = parseJson(out) as {
+        parse_status?: unknown;
+        request_parameters?: { provider?: unknown };
+        data?: { title?: unknown } | null;
+      };
+      if (r.parse_status !== 'ok') return `parse_status is ${JSON.stringify(r.parse_status)}`;
+      if (r.request_parameters?.provider !== 'youtube') {
+        return `request_parameters.provider is ${JSON.stringify(r.request_parameters?.provider)}`;
+      }
+      const title = r.data?.title;
+      return typeof title === 'string' && title.trim() !== ''
+        ? undefined
+        : 'data is null or has no non-empty title';
+    },
+  },
+  {
+    name: 'data-unsupported',
+    args: ['data', 'https://example.com/'],
+    expectExit: 3,
+    check: (_out, err) =>
+      /\(HTTP 400\)/.test(err) && err.includes('Unsupported URL')
+        ? undefined
+        : 'expected a server 400 (bad-request) with "Unsupported URL" on stderr',
   },
   { name: 'text', args: ['text', target, ...cheap] },
   { name: 'selected', args: ['selected', target, '--selector', 'h1', ...cheap] },
@@ -147,18 +181,18 @@ for (const c of cases) {
   let result: RunResult | undefined;
   try {
     result = await run(c.args);
+    const expectExit = c.expectExit ?? 0;
     if (result.signal) problem = `killed by ${result.signal}`;
-    else if (result.code !== 0) problem = `exit=${result.code}`;
-    else if (result.out.trim().length === 0) problem = 'empty output';
-    else problem = c.check?.(result.out);
+    else if (result.code !== expectExit) problem = `exit=${result.code}, expected ${expectExit}`;
+    else if (expectExit === 0 && result.out.trim().length === 0) problem = 'empty output';
+    else problem = c.check?.(result.out, result.err);
   } catch (e) {
     problem = `threw: ${e instanceof Error ? e.message : String(e)}`;
   }
 
   if (!problem && result) {
-    console.log(
-      `  ok   ${c.name.padEnd(18)}  ${redact(result.out.slice(0, 120)).replace(/\n/g, ' ')}`,
-    );
+    const shown = (c.expectExit ?? 0) === 0 ? result.out : `exit=${result.code} ${result.err}`;
+    console.log(`  ok   ${c.name.padEnd(18)}  ${redact(shown.slice(0, 120)).replace(/\n/g, ' ')}`);
   } else {
     failures += 1;
     const stderr = result ? ` stderr=${result.err.slice(0, 200)}` : '';

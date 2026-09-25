@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildCommonOptions,
+  buildDataOptions,
   buildFieldsOptions,
   buildHtmlOptions,
   buildQuestionOptions,
@@ -9,6 +10,7 @@ import {
   buildSelectedOptions,
   buildSerpOptions,
   buildTextOptions,
+  parseDataParams,
 } from '../src/lib/buildRequest.js';
 
 const FLAGS_EMPTY = {};
@@ -177,5 +179,88 @@ describe('buildSerpOptions', () => {
     expect(() => buildSerpOptions('coffee', { page: -3 })).toThrow(/--page/);
     expect(() => buildSerpOptions('coffee', { page: 1.5 })).toThrow(/--page/);
     expect(() => buildSerpOptions('coffee', { page: Number.NaN })).toThrow(/--page/);
+  });
+});
+
+describe('buildDataOptions', () => {
+  it('sends only url when no flags are set, so API defaults apply', () => {
+    expect(buildDataOptions('https://www.youtube.com/watch?v=x')).toEqual({
+      url: 'https://www.youtube.com/watch?v=x',
+    });
+  });
+
+  it('maps --country, --transcript, --transcript-language and --param', () => {
+    expect(
+      buildDataOptions('https://www.youtube.com/watch?v=x', {
+        country: 'gb',
+        transcript: true,
+        transcriptLanguage: 'de',
+        param: ['comments=20', 'q=a=b&c'],
+      }),
+    ).toEqual({
+      url: 'https://www.youtube.com/watch?v=x',
+      country: 'gb',
+      transcript: true,
+      transcript_language: 'de',
+      params: { comments: '20', q: 'a=b&c' },
+    });
+  });
+
+  it('passes an arbitrary unknown-site URL through unmodified', () => {
+    for (const url of [
+      'https://example.com/anything',
+      '  https://Example.COM/A%2Fb/ünï?x=1&y=a b#Frag  ',
+      'foo',
+    ]) {
+      expect(buildDataOptions(url)).toEqual({ url });
+    }
+  });
+
+  it('never carries scrape options (js, proxy, headers)', () => {
+    const result = buildDataOptions('https://example.com/', {
+      js: false,
+      proxy: 'residential',
+      headers: { a: 'b' },
+    } as never);
+    expect(Object.keys(result)).toEqual(['url']);
+  });
+
+  it('rejects an empty or whitespace-only url', () => {
+    expect(() => buildDataOptions('')).toThrow(/non-empty url/);
+    expect(() => buildDataOptions('  \t')).toThrow(/non-empty url/);
+  });
+});
+
+describe('parseDataParams', () => {
+  it('splits on the first = and allows empty values', () => {
+    expect(parseDataParams(['a=1', 'b=x=y', 'c='])).toEqual({ a: '1', b: 'x=y', c: '' });
+  });
+
+  it('rejects entries without a key or =', () => {
+    expect(() => parseDataParams(['novalue'])).toThrow(/key=value/);
+    expect(() => parseDataParams(['=x'])).toThrow(/key=value/);
+  });
+
+  it('rejects reserved keys: api_key, url, from_cli, __proto__', () => {
+    for (const key of ['api_key', 'url', 'from_cli', '__proto__']) {
+      expect(() => parseDataParams([`${key}=x`])).toThrow(new RegExp(`must not set "${key}"`));
+    }
+  });
+
+  it('rejects keys that have their own flag and names the flag', () => {
+    expect(() => parseDataParams(['country=de'])).toThrow(/"country"; use --country/);
+    expect(() => parseDataParams(['transcript=true'])).toThrow(/use --transcript$/);
+    expect(() => parseDataParams(['transcript_language=en'])).toThrow(/use --transcript-language/);
+  });
+
+  it('rejects a repeated key', () => {
+    expect(() => parseDataParams(['a=1', 'a=2'])).toThrow(/"a" given more than once/);
+  });
+
+  it('allows keys that only look like Object.prototype members', () => {
+    expect(parseDataParams(['constructor=x', 'toString=y'])).toEqual({
+      constructor: 'x',
+      toString: 'y',
+    });
   });
 });

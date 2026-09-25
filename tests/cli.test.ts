@@ -6,7 +6,7 @@ describe('program structure', () => {
   const program = buildProgram();
   const names = program.commands.map((c) => c.name());
 
-  it('registers all 8 endpoint commands', () => {
+  it('registers all 9 endpoint commands', () => {
     for (const expected of [
       'html',
       'text',
@@ -15,6 +15,7 @@ describe('program structure', () => {
       'ask',
       'extract',
       'serp',
+      'data',
       'account',
     ]) {
       expect(names).toContain(expected);
@@ -27,6 +28,25 @@ describe('program structure', () => {
     const flags = serp?.options.map((o) => o.long) ?? [];
     for (const f of ['--engine', '--gl', '--hl', '--page']) expect(flags).toContain(f);
     for (const f of ['--js', '--proxy', '--country', '--headers']) expect(flags).not.toContain(f);
+  });
+
+  it('exposes data with its own flags only (no scrape flags)', () => {
+    const data = program.commands.find((c) => c.name() === 'data');
+    const flags = data?.options.map((o) => o.long) ?? [];
+    for (const f of [
+      '--country',
+      '--transcript',
+      '--transcript-language',
+      '--param',
+      '--output',
+      '--pretty',
+      '--no-pretty',
+    ]) {
+      expect(flags).toContain(f);
+    }
+    for (const f of ['--js', '--proxy', '--headers', '--timeout', '--device']) {
+      expect(flags).not.toContain(f);
+    }
   });
 
   it('registers auth and setup commands', () => {

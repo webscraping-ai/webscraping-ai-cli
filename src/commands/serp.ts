@@ -5,7 +5,7 @@ import type { SerpRawFlags } from '../lib/buildRequest.js';
 import { resolveApiKey } from '../lib/config.js';
 import { EXIT_CODES } from '../lib/errors.js';
 import { isPositiveIntegerString } from '../lib/options.js';
-import { createEmitter } from '../lib/output.js';
+import { openEmitter } from '../lib/output.js';
 import { createClient } from '../lib/sdk.js';
 import { queryIterator, urlIsStdin } from '../lib/stdin.js';
 
@@ -69,7 +69,7 @@ export function serpCommand(): Command {
     const flags: SerpRawFlags = { engine: opts.engine, gl: opts.gl, hl: opts.hl, page };
     const apiKey = await resolveApiKey({ flag: opts.apiKey });
     const client = createClient({ apiKey });
-    const write = createEmitter(opts);
+    const write = await openEmitter(opts, query);
 
     for await (const q of queryIterator(query)) {
       const result = await client.serp(buildSerpOptions(q, flags));

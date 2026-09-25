@@ -5,6 +5,25 @@ All notable changes to `webscraping-ai-cli` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.0 — 2026-09-25
+
+### Added
+
+- `data <url>` subcommand wrapping the new `/data` endpoint: structured JSON for a page on a supported site (e.g. YouTube, TikTok, X, LinkedIn, Instagram, Reddit; more are added server-side). Flags: `--country` (proxy country, `us` by default), `--transcript` (YouTube videos only; if the transcript fetch itself fails, the whole request fails with a 500, exit 7, not charged), `--transcript-language`, and a repeatable `--param key=value` passed through as-is for site-specific parameters. `-` reads one URL per line from stdin (stops at the first failing item, like every command); `-o` and `--pretty`/`--no-pretty` work as on `serp`. The scrape flags (`--js`, `--proxy`, `--headers`, …) don't apply and aren't registered on it. 15 credits per request.
+- The URL is sent exactly as given and never checked against a list of sites. An unsupported URL or page type returns a 400 that is not charged (exit 3); its message lists what is supported. A blank URL exits 2 before any request.
+- `--param` rejects, with exit 2 before any request: a missing `=` or empty key, a repeated key, `api_key`, `url`, `from_cli`, `__proto__`, and keys that have their own flag (`country`, `transcript`, `transcript_language` — the message names the flag).
+- Bundled agent skill documents when to reach for `data` before scraping a supported site yourself.
+- Smoke script adds a YouTube `data` call (checks `parse_status` `ok`, provider `youtube`, a non-empty `data.title`) and an example.com call that must exit 3 with a server 400 whose message contains `Unsupported URL` (~46 credits per sweep).
+
+### Changed
+
+- Requires the `webscraping-ai` SDK release after 4.1.0 (adds `data()` and the `params` pass-through on `serp()`/`data()`).
+- `from_cli` is now sent on `serp` and `data`, through the SDK's `params` pass-through (closes the known gap: SDK 4.1.0's `serp()` dropped it).
+
+### Fixed
+
+- `-o/--output` in stdin batch mode is truncated when the batch starts, so an empty stdin or a failing first item no longer leaves the previous run's content in the file.
+
 ## 1.1.0 — 2026-09-25
 
 ### Added

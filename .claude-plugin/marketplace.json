@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-marketplace.json",
   "name": "webscraping-ai",
-  "description": "Official WebScraping.AI plugins for Claude Code — scrape and AI-extract data from any URL, and get parsed Google search (SERP) results.",
+  "description": "Official WebScraping.AI plugins for Claude Code — scrape and AI-extract data from any URL, get parsed Google search (SERP) results, and structured data for supported sites.",
   "owner": {
     "name": "WebScraping.AI",
     "url": "https://webscraping.ai"
@@ -10,8 +10,8 @@
     {
       "name": "webscraping-ai",
       "source": "./plugins/webscraping-ai",
-      "description": "Fetch HTML, text, selected elements, or AI-extracted data from any URL — including JS-rendered pages — and parsed Google search results, via the WebScraping.AI CLI.",
-      "version": "1.1.0",
+      "description": "Fetch HTML, text, selected elements, or AI-extracted data from any URL — including JS-rendered pages — parsed Google search results, and structured data for supported sites (YouTube, TikTok, X, LinkedIn, Instagram, Reddit, …), via the WebScraping.AI CLI.",
+      "version": "1.2.0",
       "category": "web-scraping",
       "keywords": [
         "web-scraping",

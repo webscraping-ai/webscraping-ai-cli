@@ -9,6 +9,7 @@
 
 import type {
   CommonRequestOptions,
+  DataOptions,
   FieldsOptions,
   HtmlOptions,
   QuestionOptions,
@@ -158,5 +159,68 @@ export function buildSerpOptions(query: string, flags: SerpRawFlags = {}): SerpO
     }
     out.page = flags.page;
   }
+  return out;
+}
+
+export interface DataRawFlags {
+  country?: string;
+  transcript?: boolean;
+  transcriptLanguage?: string;
+  /** Raw repeatable `--param key=value` strings. */
+  param?: readonly string[];
+}
+
+/** Keys `--param` must never set: owned by the SDK/CLI. */
+const RESERVED_DATA_PARAMS = new Set(['api_key', 'url', 'from_cli', '__proto__']);
+
+/** `--param` keys that have their own flag: reject and point at the flag. */
+const NAMED_DATA_PARAMS: Record<string, string> = {
+  country: '--country',
+  transcript: '--transcript',
+  transcript_language: '--transcript-language',
+};
+
+/**
+ * Parse repeatable `--param key=value` flags into a plain object. Splits on
+ * the first `=`, so values may contain `=`. Throws on a missing `=`, an empty
+ * or repeated key, a reserved key (`api_key`, `url`, `from_cli`,
+ * `__proto__`), or a key that has its own flag (`country` → use `--country`).
+ */
+export function parseDataParams(raw: readonly string[] = []): Record<string, string> {
+  const out: Record<string, string> = Object.create(null) as Record<string, string>;
+  for (const entry of raw) {
+    const eq = entry.indexOf('=');
+    if (eq <= 0) throw new Error(`--param must be key=value, got: ${entry}`);
+    const key = entry.slice(0, eq);
+    if (RESERVED_DATA_PARAMS.has(key)) {
+      throw new Error(`--param must not set "${key}"`);
+    }
+    if (Object.hasOwn(NAMED_DATA_PARAMS, key)) {
+      throw new Error(`--param must not set "${key}"; use ${NAMED_DATA_PARAMS[key]}`);
+    }
+    if (Object.hasOwn(out, key)) {
+      throw new Error(`--param "${key}" given more than once`);
+    }
+    out[key] = entry.slice(eq + 1);
+  }
+  return { ...out };
+}
+
+/**
+ * `/data` is URL-shaped but takes none of the common scrape options, so this
+ * deliberately does not go through `buildCommonOptions`. The URL is passed
+ * through unmodified: there is no client-side site check (sites are added
+ * server-side; the API answers an unsupported URL with a free 400).
+ */
+export function buildDataOptions(url: string, flags: DataRawFlags = {}): DataOptions {
+  if (typeof url !== 'string' || url.trim() === '') {
+    throw new Error('data requires a non-empty url');
+  }
+  const out: DataOptions = { url };
+  if (flags.country) out.country = flags.country;
+  if (flags.transcript !== undefined) out.transcript = flags.transcript;
+  if (flags.transcriptLanguage) out.transcript_language = flags.transcriptLanguage;
+  const params = parseDataParams(flags.param);
+  if (Object.keys(params).length > 0) out.params = params;
   return out;
 }

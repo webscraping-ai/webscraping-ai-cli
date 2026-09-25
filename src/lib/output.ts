@@ -6,12 +6,15 @@
  *   - objects/arrays → JSON.stringified (pretty by default; `--pretty` is the
  *     default for terminals, single-line for pipes/redirects)
  *
- * `--output FILE` writes to disk instead of stdout. In stdin batch mode use
- * `createEmitter()`: it truncates the file on the first result and appends
- * every later one, so each item survives instead of overwriting the last.
+ * `--output FILE` writes to disk instead of stdout. Commands use
+ * `openEmitter()`: in stdin batch mode (`-`) it truncates the file up front
+ * (so a first-item failure or empty stdin never leaves stale content) and
+ * appends every result, so each item survives instead of overwriting the last.
  */
 
 import { promises as fs } from 'node:fs';
+
+import { urlIsStdin } from './stdin.js';
 
 export interface EmitOptions {
   output?: string;
@@ -59,4 +62,20 @@ export function stringify(value: unknown, opts: EmitOptions = {}): string {
 
   const pretty = opts.pretty ?? process.stdout.isTTY ?? false;
   return JSON.stringify(value, null, pretty ? 2 : 0);
+}
+
+/**
+ * Emitter for a command whose positional arg is `arg`. When `arg` is `-`
+ * (stdin batch) and `--output` is set, the file is truncated now, before any
+ * request, and every result is appended. Otherwise same as `createEmitter()`.
+ */
+export async function openEmitter(
+  opts: EmitOptions,
+  arg: string,
+): Promise<(value: unknown) => Promise<void>> {
+  if (urlIsStdin(arg) && opts.output && opts.output.trim() !== '') {
+    await fs.writeFile(opts.output, '');
+    return (value: unknown) => emit(value, opts, { append: true });
+  }
+  return createEmitter(opts);
 }

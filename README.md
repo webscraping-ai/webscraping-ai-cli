@@ -46,10 +46,21 @@ webscraping-ai selected-multiple <url> --selector a --selector b ...
 webscraping-ai ask <url> --question "..."  # AI question about the page
 webscraping-ai extract <url> --fields '{"title":"...","price":"..."}'
 webscraping-ai serp <query> [--gl us] [--hl en] [--page 1]  # Parsed Google results (alias: search)
+webscraping-ai data <url> [--country us] [--transcript]      # Structured JSON for a supported site
 webscraping-ai account                     # Remaining credits / quota
 ```
 
-`serp` (alias `search`) is query-shaped, not URL-shaped: it takes `--engine` (`google`, the default), `--gl` (country), `--hl` (language), `--page` (1-based, 10 results per page) plus `--api-key`/`--output`/`--pretty`, and none of the scrape flags below. It prints the JSON result (`search_parameters`, `search_information`, `organic_results`, `related_searches`, `pagination`). Flat 15 credits per search; failed searches are not charged. `--page` must be an integer >= 1 (pages are 1–100; the server rejects values above 100 with a 400); anything else is a usage error (exit 2) before any request. Multi-word queries don't need quoting; `-` reads one query per line from stdin, skipping only blank lines (a leading `#` is kept as part of the query, e.g. `#coffee`). The CLI's `from_cli` analytics flag is not sent on `serp` (the SDK forwards only the SERP parameters).
+`serp` (alias `search`) is query-shaped, not URL-shaped: it takes `--engine` (`google`, the default), `--gl` (country), `--hl` (language), `--page` (1-based, 10 results per page) plus `--api-key`/`--output`/`--pretty`, and none of the scrape flags below. It prints the JSON result (`search_parameters`, `search_information`, `organic_results`, `related_searches`, `pagination`). Flat 15 credits per search; failed searches are not charged. `--page` must be an integer >= 1 (pages are 1–100; the server rejects values above 100 with a 400); anything else is a usage error (exit 2) before any request. Multi-word queries don't need quoting; `-` reads one query per line from stdin, skipping only blank lines (a leading `#` is kept as part of the query, e.g. `#coffee`). The CLI's `from_cli` analytics flag is sent on `serp` through the SDK's `params` pass-through.
+
+`data <url>` returns structured JSON for a public page on a supported site — for example a YouTube video, TikTok profile, X post, LinkedIn company, Instagram reel or Reddit thread. Pass the page's normal URL; the site and page kind are detected server-side and echoed in `request_parameters` (`provider`, `type`), next to `parse_status` (`ok`, `parse_failed` or `not_found`) and `data` (shape depends on the site; `null` when nothing parsed). More sites are added on the server over time, so the CLI never checks the URL itself and sends it exactly as given. An unsupported URL or page type returns a 400 that is not charged (exit 3); its message lists what is supported. 15 credits per request, including `parse_failed`/`not_found` results; failed fetches are not charged. None of the scrape flags below apply; `data` has its own:
+
+- `--country <code>`: two-letter country code of the proxy used to fetch the page, `us` by default.
+- `--transcript`: YouTube videos only. Also fetch the video's transcript into `data.transcript`. It's null when no matching captions are available. If the transcript fetch itself fails, the whole request fails with a 500 (exit 7) and is not charged.
+- `--transcript-language <code>`: caption language to pick, e.g. `en` or `de`. Without it, English is preferred, then the first available track. If the video has no captions in that language, `data.transcript` is null.
+- `--param key=value` (repeatable): site-specific parameters added after this CLI version, sent as-is. A repeated key, `api_key`, `url`, `from_cli`, `__proto__`, or a key that has its own flag (`country`, `transcript`, `transcript_language` — use the flag) is a usage error (exit 2).
+- `--api-key`, `--output`, `--pretty`/`--no-pretty`.
+
+`-` reads one URL per line from stdin (blank and `#` lines skipped). Like every URL command, a batch **stops at the first failing item**: earlier results are already written, the remaining URLs are not requested, and the exit code is that error's. With `-o FILE` the file is truncated when the batch starts, then each result is appended. A blank URL or a bad `--param` is a usage error (exit 2) before any request.
 
 Common flags shared by every scrape command:
 
@@ -126,6 +137,12 @@ webscraping-ai serp coffee machines --gl de --hl de --page 2
 
 # Just the organic result links
 webscraping-ai search "best espresso grinder" | jq -r '.organic_results[].link'
+
+# Structured data for a YouTube video, with its transcript
+webscraping-ai data 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' --transcript | jq '.data.title'
+
+# Structured data for a list of profile/post URLs, one JSON result per line
+cat social-urls.txt | webscraping-ai data - --no-pretty -o social.ndjson
 
 # Headers from a file
 webscraping-ai html https://example.com --headers @./headers.json
