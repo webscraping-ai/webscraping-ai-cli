@@ -10,8 +10,8 @@
     {
       "name": "webscraping-ai",
       "source": "./plugins/webscraping-ai",
-      "description": "Fetch HTML, text, selected elements, or AI-extracted data from any URL — including JS-rendered pages — via the WebScraping.AI CLI.",
-      "version": "1.0.0",
+      "description": "Fetch HTML, text, selected elements, or AI-extracted data from any URL — including JS-rendered pages — and parsed Google search results, via the WebScraping.AI CLI.",
+      "version": "1.1.0",
       "category": "web-scraping",
       "keywords": ["web-scraping", "html", "text-extraction", "ai-extraction", "scraping", "cli"]
     }

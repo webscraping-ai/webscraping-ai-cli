@@ -14,6 +14,7 @@ import type {
   QuestionOptions,
   SelectedMultipleOptions,
   SelectedOptions,
+  SerpOptions,
   TextOptions,
 } from 'webscraping-ai';
 
@@ -126,4 +127,31 @@ export function buildFieldsOptions(
   resolved: ResolvedCommonOptions,
 ): FieldsOptions {
   return { url, fields, ...buildCommonOptions(flags, resolved) };
+}
+
+export interface SerpRawFlags {
+  engine?: 'google';
+  gl?: string;
+  hl?: string;
+  page?: number;
+}
+
+/**
+ * `/serp` is query-shaped: it takes none of the common scrape options, so
+ * this deliberately does not go through `buildCommonOptions`.
+ */
+export function buildSerpOptions(query: string, flags: SerpRawFlags = {}): SerpOptions {
+  const q = query.trim();
+  if (q === '') throw new Error('serp requires a non-empty query');
+  const out: SerpOptions = { q };
+  if (flags.engine !== undefined) out.engine = flags.engine;
+  if (flags.gl) out.gl = flags.gl;
+  if (flags.hl) out.hl = flags.hl;
+  if (flags.page !== undefined) {
+    if (!Number.isInteger(flags.page) || flags.page < 1) {
+      throw new Error(`--page must be an integer >= 1, got: ${flags.page}`);
+    }
+    out.page = flags.page;
+  }
+  return out;
 }

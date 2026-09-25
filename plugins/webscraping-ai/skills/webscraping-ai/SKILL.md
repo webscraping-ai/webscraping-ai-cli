@@ -1,6 +1,6 @@
 ---
 name: webscraping-ai
-description: Use the WebScraping.AI CLI to fetch HTML, plain text, or AI-extracted data from any URL. Reach for this when you need real page content (including JS-rendered sites) instead of guessing or relying on stale knowledge.
+description: Use the WebScraping.AI CLI to fetch HTML, plain text, or AI-extracted data from any URL, or to get parsed Google search results for a query. Reach for this when you need real page content (including JS-rendered sites) or current search results instead of guessing or relying on stale knowledge.
 ---
 
 # WebScraping.AI skill
@@ -25,6 +25,7 @@ Reach for `webscraping-ai` when you need to:
 - **Answer a question** about a specific page without scraping the whole thing first.
 - Render **JavaScript-heavy** pages (SPAs, lazy-loaded content) that a plain `curl` won't see.
 - Bypass **anti-bot protection** that's blocking `curl` / `fetch`.
+- Get **current Google search results** for a query (to find candidate URLs, check rankings, or see what's out there) as clean JSON.
 
 Don't use it for:
 
@@ -34,7 +35,7 @@ Don't use it for:
 
 ## Quick reference
 
-The CLI exposes 7 subcommands, one per API endpoint:
+The CLI exposes 8 subcommands, one per API endpoint:
 
 | Command            | What it does                                            |
 | ------------------ | ------------------------------------------------------- |
@@ -44,11 +45,12 @@ The CLI exposes 7 subcommands, one per API endpoint:
 | `selected-multiple`| Fetch HTML of multiple CSS-selected areas at once       |
 | `ask`              | Ask a natural-language question about a page (AI)       |
 | `extract`          | Extract structured fields with descriptions (AI)        |
+| `serp` / `search`  | Parsed Google search results for a query (JSON)         |
 | `account`          | Show remaining API credits / quota                      |
 
 Authentication: set `WEBSCRAPING_AI_API_KEY`, pass `--api-key`, or run `webscraping-ai auth set <key>` once.
 
-Every command supports common flags: `--js/--no-js`, `--proxy {datacenter|residential|stealth}`, `--country <cc>`, `--device {desktop|mobile|tablet}`, `--timeout <ms>`, `--js-timeout <ms>`, `--wait-for <selector>`, `--headers '{"Cookie":"..."}'`, `--output <file>`.
+Every page command supports common flags: `--js/--no-js`, `--proxy {datacenter|residential|stealth}`, `--country <cc>`, `--device {desktop|mobile|tablet}`, `--timeout <ms>`, `--js-timeout <ms>`, `--wait-for <selector>`, `--headers '{"Cookie":"..."}'`, `--output <file>`. `serp` is the exception: it takes a query, not a URL, and only `--engine`, `--gl <cc>`, `--hl <lang>`, `--page <n>`, `--output`.
 
 ## How to pick the right command
 
@@ -63,6 +65,8 @@ Every command supports common flags: `--js/--no-js`, `--proxy {datacenter|reside
 **Need a single answer to a question**? → `ask -q "What's the price of this product?"`. Cheaper than `html` + parsing yourself when you only need one thing.
 
 **Need a JSON object of typed fields**? → `extract --fields '{"title":"Main product title","price":"Current price including currency"}'`. Returns `{ result: { title: "...", price: "..." } }`.
+
+**Starting from a query, not a URL** (find pages about X, check who ranks for a term, see what Google shows in a given country)? → `serp "<query>"`. Returns JSON with `organic_results` (`position`, `title`, `link`, `domain`, `snippet`), `related_searches`, and `pagination`. Use `--gl`/`--hl` for country/language and `--page 2` for the next 10 results. Don't `html` a google.com search URL and parse it yourself — `serp` is cheaper, more reliable, and already parsed. Then feed the `link`s you care about into `text`/`ask`/`extract`.
 
 **Need to check available credits**? → `account`.
 
@@ -89,6 +93,13 @@ webscraping-ai ask https://shop.example.com/item -q "Is this product in stock?"
 webscraping-ai extract https://shop.example.com/item \
   --fields '{"title":"Product title","price":"Current price with currency","rating":"Average star rating as a number"}'
 
+# Google results for a query (German results from Germany, page 2)
+webscraping-ai serp coffee machines --gl de --hl de --page 2
+
+# Search, then read the top result
+webscraping-ai serp "rust async runtime comparison" --no-pretty | jq -r '.organic_results[0].link' \
+  | webscraping-ai text -
+
 # Pipe a list of URLs through the same command
 cat urls.txt | webscraping-ai text - --output ./articles.ndjson
 
@@ -103,6 +114,7 @@ webscraping-ai html https://geo.example.com \
 - **`--js` is on by default.** Pass `--no-js` for static pages — it's significantly faster and cheaper.
 - **`selected-multiple` returns nested arrays** (`Array<Array<string>>`) — known API response shape. The outer wrapper holds all matches concatenated; flatten in your script if needed.
 - **`extract` wraps its output** under a `result` key: the parsed shape is `{ "result": { ... } }`.
+- **`serp` costs a flat 15 credits per search** (failed searches aren't charged) and returns at most 10 organic results per page. Optional fields (`snippet`, `date`, `related_searches`, `pagination.next`, `search_information.total_results`) may be absent.
 - **API key in URL.** The CLI sends the key as a query-string param. Don't log full requests in shared logs.
 - **Exit codes** are stable per error class (auth → 4, payment → 5, rate-limit → 6, server → 7, timeout → 8, connection → 9). Script around them.
 

@@ -45,8 +45,11 @@ webscraping-ai selected <url> --selector <css>           # One CSS area
 webscraping-ai selected-multiple <url> --selector a --selector b ...
 webscraping-ai ask <url> --question "..."  # AI question about the page
 webscraping-ai extract <url> --fields '{"title":"...","price":"..."}'
+webscraping-ai serp <query> [--gl us] [--hl en] [--page 1]  # Parsed Google results (alias: search)
 webscraping-ai account                     # Remaining credits / quota
 ```
+
+`serp` (alias `search`) is query-shaped, not URL-shaped: it takes `--engine` (`google`, the default), `--gl` (country), `--hl` (language), `--page` (1-based, 10 results per page) plus `--api-key`/`--output`/`--pretty`, and none of the scrape flags below. It prints the JSON result (`search_parameters`, `search_information`, `organic_results`, `related_searches`, `pagination`). Flat 15 credits per search; failed searches are not charged. Multi-word queries don't need quoting; `-` reads one query per line from stdin.
 
 Common flags shared by every scrape command:
 
@@ -117,6 +120,12 @@ webscraping-ai html https://geo.example.com \
 cat urls.txt | webscraping-ai extract - \
   --fields '{"title":"Product title","price":"Current price"}' \
   --output products.ndjson
+
+# Google results for a query, page 2, from Germany in German
+webscraping-ai serp coffee machines --gl de --hl de --page 2
+
+# Just the organic result links
+webscraping-ai search "best espresso grinder" | jq -r '.organic_results[].link'
 
 # Headers from a file
 webscraping-ai html https://example.com --headers @./headers.json

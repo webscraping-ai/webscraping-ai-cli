@@ -7,6 +7,7 @@ import {
   buildQuestionOptions,
   buildSelectedMultipleOptions,
   buildSelectedOptions,
+  buildSerpOptions,
   buildTextOptions,
 } from '../src/lib/buildRequest.js';
 
@@ -146,5 +147,37 @@ describe('buildFieldsOptions', () => {
     const fields = { title: 'Product title', price: 'Current price' };
     const result = buildFieldsOptions('https://example.com', fields, {}, {});
     expect(result).toEqual({ url: 'https://example.com', fields });
+  });
+});
+
+describe('buildSerpOptions', () => {
+  it('sends only q when no flags are set, so API defaults apply', () => {
+    expect(buildSerpOptions('coffee machines')).toEqual({ q: 'coffee machines' });
+  });
+
+  it('maps --engine, --gl, --hl and --page', () => {
+    const result = buildSerpOptions('coffee machines', {
+      engine: 'google',
+      gl: 'de',
+      hl: 'de',
+      page: 2,
+    });
+    expect(result).toEqual({ q: 'coffee machines', engine: 'google', gl: 'de', hl: 'de', page: 2 });
+  });
+
+  it('never carries scrape options (url, js, proxy, country)', () => {
+    const result = buildSerpOptions('coffee', { js: false, proxy: 'residential', country: 'gb' } as never);
+    expect(Object.keys(result)).toEqual(['q']);
+  });
+
+  it('trims the query and rejects an empty one', () => {
+    expect(buildSerpOptions('  coffee  ').q).toBe('coffee');
+    expect(() => buildSerpOptions('')).toThrow(/non-empty query/);
+    expect(() => buildSerpOptions('   ')).toThrow(/non-empty query/);
+  });
+
+  it('rejects --page below 1', () => {
+    expect(() => buildSerpOptions('coffee', { page: 0 })).toThrow(/--page/);
+    expect(() => buildSerpOptions('coffee', { page: -3 })).toThrow(/--page/);
   });
 });

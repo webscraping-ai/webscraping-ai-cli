@@ -1,7 +1,8 @@
 #!/usr/bin/env tsx
 /**
  * Hand-run smoke test that exercises every CLI subcommand against the live
- * API. Not part of the test suite — costs ~17 credits per full sweep.
+ * API. Not part of the test suite — costs ~32 credits per full sweep
+ * (~17 for the page endpoints + 15 for `serp`).
  *
  * Usage:
  *   WEBSCRAPING_AI_API_KEY=... npm run smoke
@@ -35,6 +36,7 @@ const target = 'https://example.com';
 const cases: Case[] = [
   { name: 'account', args: ['account'] },
   { name: 'html', args: ['html', target, '--no-js'] },
+  { name: 'serp', args: ['serp', 'coffee machines'] },
   { name: 'text', args: ['text', target, '--no-js'] },
   { name: 'selected', args: ['selected', target, '--selector', 'h1', '--no-js'] },
   {

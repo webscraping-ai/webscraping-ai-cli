@@ -18,6 +18,7 @@ import { extractCommand } from './commands/extract.js';
 import { htmlCommand } from './commands/html.js';
 import { selectedCommand } from './commands/selected.js';
 import { selectedMultipleCommand } from './commands/selectedMultiple.js';
+import { serpCommand } from './commands/serp.js';
 import { setupCommand } from './commands/setupSkill.js';
 import { textCommand } from './commands/text.js';
 import { exitCodeFor, formatError } from './lib/errors.js';
@@ -36,7 +37,7 @@ export function buildProgram(): Command {
   program
     .name('webscraping-ai')
     .description(
-      'Official CLI for the WebScraping.AI API. Fetch pages, ask AI, extract structured data.\n' +
+      'Official CLI for the WebScraping.AI API. Fetch pages, search Google, ask AI, extract structured data.\n' +
         'Set $WEBSCRAPING_AI_API_KEY or run `webscraping-ai auth set <key>` first.',
     )
     .version(packageVersion(), '-v, --version', 'output the version number')
@@ -48,6 +49,7 @@ export function buildProgram(): Command {
   program.addCommand(selectedMultipleCommand());
   program.addCommand(askCommand());
   program.addCommand(extractCommand());
+  program.addCommand(serpCommand());
   program.addCommand(accountCommand());
   program.addCommand(authCommand());
   program.addCommand(setupCommand());

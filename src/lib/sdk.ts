@@ -15,6 +15,7 @@ import type {
   QuestionOptions,
   SelectedMultipleOptions,
   SelectedOptions,
+  SerpOptions,
   TextOptions,
 } from 'webscraping-ai';
 
@@ -56,6 +57,11 @@ export function createClient(options: CreateClientOptions): WebScrapingAI {
           return (o: QuestionOptions) => target.question({ ...o, ...tag });
         case 'fields':
           return (o: FieldsOptions) => target.fields({ ...o, ...tag });
+        case 'serp':
+          // Tag sent for parity; SDK 4.1.0's `serp()` forwards only the known
+          // SERP keys, so `from_cli` doesn't reach the wire until it passes
+          // extras through.
+          return (o: SerpOptions) => target.serp({ ...o, ...tag });
         case 'account':
           // `account` takes no options; the SDK builds the request itself, so
           // there's no seam here for the analytics tag — accepted limitation.

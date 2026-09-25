@@ -23,6 +23,7 @@ export async function* readUrlsFromStdin(): AsyncIterable<string> {
 
 /**
  * Iterate URLs from either a single CLI arg or from stdin (if the arg is `-`).
+ * Also used by `serp` for queries — the line handling is identical.
  */
 export async function* urlIterator(arg: string): AsyncIterable<string> {
   if (urlIsStdin(arg)) {

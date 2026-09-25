@@ -6,7 +6,7 @@ describe('program structure', () => {
   const program = buildProgram();
   const names = program.commands.map((c) => c.name());
 
-  it('registers all 7 endpoint commands', () => {
+  it('registers all 8 endpoint commands', () => {
     for (const expected of [
       'html',
       'text',
@@ -14,10 +14,19 @@ describe('program structure', () => {
       'selected-multiple',
       'ask',
       'extract',
+      'serp',
       'account',
     ]) {
       expect(names).toContain(expected);
     }
+  });
+
+  it('exposes serp under the `search` alias with SERP flags only', () => {
+    const serp = program.commands.find((c) => c.name() === 'serp');
+    expect(serp?.aliases()).toContain('search');
+    const flags = serp?.options.map((o) => o.long) ?? [];
+    for (const f of ['--engine', '--gl', '--hl', '--page']) expect(flags).toContain(f);
+    for (const f of ['--js', '--proxy', '--country', '--headers']) expect(flags).not.toContain(f);
   });
 
   it('registers auth and setup commands', () => {

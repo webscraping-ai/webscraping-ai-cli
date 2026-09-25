@@ -1,6 +1,6 @@
 {
   "name": "webscraping-ai-cli",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Official command-line client for the WebScraping.AI API. Includes a Claude Code skill so AI agents can use it too.",
   "type": "module",
   "bin": {
@@ -53,7 +53,7 @@
   "homepage": "https://webscraping.ai",
   "dependencies": {
     "commander": "^12.1.0",
-    "webscraping-ai": "^4.0.0"
+    "webscraping-ai": "^4.1.0"
   },
   "overrides": {
     "esbuild": "^0.28.1"

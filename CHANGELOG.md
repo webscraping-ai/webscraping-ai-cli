@@ -5,6 +5,17 @@ All notable changes to `webscraping-ai-cli` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.0 — 2026-09-25
+
+### Added
+
+- `serp <query>` subcommand (alias `search`) wrapping the new `/serp` endpoint: parsed Google search results as JSON. Flags: `--engine` (`google`), `--gl`, `--hl`, `--page <n>`. Multi-word queries don't need quoting; `-` reads one query per line from stdin. The scrape flags (`--js`, `--proxy`, `--country`, …) don't apply and aren't registered on it. Flat 15 credits per search.
+- Bundled agent skill documents when to reach for `serp` (query-first research) instead of scraping a search URL.
+
+### Changed
+
+- Requires `webscraping-ai` SDK `^4.1.0` (adds `serp()`).
+
 ## 1.0.2 — 2026-07-17
 
 ### Changed
