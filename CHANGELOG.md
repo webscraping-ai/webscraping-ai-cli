@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Requires `webscraping-ai` SDK `^4.1.0` (adds `serp()`).
-- `serp --page` is validated strictly (digits only, >= 1): `1.5`, `2abc` and `0` are rejected with exit code 2 before stdin is read or the key is resolved. The server caps `page` at 100.
+- `serp --page` is validated strictly (digits only, >= 1): `1.5`, `2abc` and `0` are rejected with exit code 2 before stdin is read or the key is resolved (the server also rejects them with a 400, not billed; checking client-side saves the round trip). Pages are 1–100: the server rejects a `page` above 100 with a 400.
 - `serp` stdin batches skip only blank lines, so `#hashtag` queries are searched rather than dropped as comments. URL commands still treat `#` lines as comments.
 - `serp` sends the query as typed (whitespace-only queries are still rejected). `from_cli` is not sent on `serp`: the SDK forwards only the SERP parameters.
 

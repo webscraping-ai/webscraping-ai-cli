@@ -39,7 +39,7 @@ export function serpCommand(): Command {
     .option('--hl <code>', 'two-letter language code for the results (default: en)')
     .option(
       '--page <n>',
-      'results page number, integer >= 1, 10 results per page (default: 1; server caps at 100)',
+      'results page number, integer >= 1, 10 results per page (default: 1; server rejects > 100 with a 400)',
     )
     .option('-k, --api-key <key>', 'API key (overrides $WEBSCRAPING_AI_API_KEY and config file)')
     .option('-o, --output <file>', 'write result to FILE instead of stdout')

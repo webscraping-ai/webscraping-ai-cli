@@ -69,7 +69,7 @@ export function addCommonScrapeOptions(cmd: Command): Command {
  */
 export function isPositiveIntegerString(value: string): boolean {
   // isSafeInteger: a huge digit string becomes e.g. 1e+21 on the wire, which
-  // the server's parseInt reads as page 1 (and still bills the search).
+  // the server rejects with a 400 (not billed); checking here saves the round trip.
   return /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value));
 }
 

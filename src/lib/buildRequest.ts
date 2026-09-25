@@ -139,8 +139,9 @@ export interface SerpRawFlags {
 /**
  * `/serp` is query-shaped: it takes none of the common scrape options, so
  * this deliberately does not go through `buildCommonOptions`. `page` must be
- * an integer >= 1 (the server silently coerces anything else to page 1 and
- * still bills the search; it also caps page at 100).
+ * an integer >= 1 (the server also rejects anything else with a 400, not
+ * billed; checking client-side saves the round trip). Pages are 1-100: the
+ * server rejects a page above 100 with a 400.
  */
 export function buildSerpOptions(query: string, flags: SerpRawFlags = {}): SerpOptions {
   // Validate on the trimmed value but send the query as the user typed it.

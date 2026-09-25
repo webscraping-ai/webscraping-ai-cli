@@ -123,7 +123,7 @@ webscraping-ai html https://geo.example.com \
 - Text/HTML responses print verbatim. JSON responses pretty-print on a TTY and single-line on a pipe.
 - `--output FILE` writes the result to a file instead of stdout.
 - For batched stdin input, each URL's response is emitted in order, separated by newlines. `-o FILE` collects all of them in FILE. URL lists skip `#` comment lines; `serp -` skips only blank lines, so `#hashtag` queries are searched.
-- `serp --page` must be an integer >= 1 (server caps it at 100); anything else exits with code 2 before any request.
+- `serp --page` must be an integer >= 1 (server rejects > 100 with a 400); anything else exits with code 2 before any request.
 
 ## See also
 
