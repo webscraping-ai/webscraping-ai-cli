@@ -138,17 +138,21 @@ export interface SerpRawFlags {
 
 /**
  * `/serp` is query-shaped: it takes none of the common scrape options, so
- * this deliberately does not go through `buildCommonOptions`.
+ * this deliberately does not go through `buildCommonOptions`. `page` must be
+ * an integer >= 1 (the server silently coerces anything else to page 1 and
+ * still bills the search; it also caps page at 100).
  */
 export function buildSerpOptions(query: string, flags: SerpRawFlags = {}): SerpOptions {
-  const q = query.trim();
-  if (q === '') throw new Error('serp requires a non-empty query');
-  const out: SerpOptions = { q };
+  // Validate on the trimmed value but send the query as the user typed it.
+  if (typeof query !== 'string' || query.trim() === '') {
+    throw new Error('serp requires a non-empty query');
+  }
+  const out: SerpOptions = { q: query };
   if (flags.engine !== undefined) out.engine = flags.engine;
   if (flags.gl) out.gl = flags.gl;
   if (flags.hl) out.hl = flags.hl;
   if (flags.page !== undefined) {
-    if (!Number.isInteger(flags.page) || flags.page < 1) {
+    if (!Number.isSafeInteger(flags.page) || flags.page < 1) {
       throw new Error(`--page must be an integer >= 1, got: ${flags.page}`);
     }
     out.page = flags.page;

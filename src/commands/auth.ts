@@ -27,7 +27,9 @@ export function authCommand(): Command {
       const persisted = await readPersistedConfig();
       const env = process.env.WEBSCRAPING_AI_API_KEY;
       if (env && env.trim() !== '') {
-        process.stdout.write(`Active key (env WEBSCRAPING_AI_API_KEY): ${maskApiKey(env.trim())}\n`);
+        process.stdout.write(
+          `Active key (env WEBSCRAPING_AI_API_KEY): ${maskApiKey(env.trim())}\n`,
+        );
       }
       if (persisted.apiKey && persisted.apiKey.trim() !== '') {
         process.stdout.write(
@@ -44,7 +46,9 @@ export function authCommand(): Command {
     .description('Remove the stored API key file')
     .action(async () => {
       const removed = await clearPersistedConfig();
-      process.stdout.write(removed ? `Removed ${configPath()}\n` : 'No stored API key to remove.\n');
+      process.stdout.write(
+        removed ? `Removed ${configPath()}\n` : 'No stored API key to remove.\n',
+      );
     });
 
   return cmd;

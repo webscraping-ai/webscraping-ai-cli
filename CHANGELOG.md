@@ -15,6 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Requires `webscraping-ai` SDK `^4.1.0` (adds `serp()`).
+- `serp --page` is validated strictly (digits only, >= 1): `1.5`, `2abc` and `0` are rejected with exit code 2 before stdin is read or the key is resolved. The server caps `page` at 100.
+- `serp` stdin batches skip only blank lines, so `#hashtag` queries are searched rather than dropped as comments. URL commands still treat `#` lines as comments.
+- `serp` sends the query as typed (whitespace-only queries are still rejected). `from_cli` is not sent on `serp`: the SDK forwards only the SERP parameters.
+
+### Fixed
+
+- `--pretty` / `--no-pretty` no longer fail with "option '--no-pretty' cannot be used with option '--no-pretty'" (a self-conflict on every scrape command and `serp`).
+- `-o/--output` in stdin batch mode kept only the last result; the file is now truncated once and each result appended.
+- Error messages printed to stderr redact the API key and any `api_key=...` pattern (an HTML error body echoing the request URL used to print the key).
+- Smoke script (`npm run smoke`) now checks results, not just exit codes: `serp` needs non-empty `organic_results` and a matching `search_parameters.q`, `selected-multiple` needs a non-empty inner array; signal-killed runs fail; page commands run with `--no-js --proxy datacenter` (~31 credits per sweep); FAIL lines redact the key.
 
 ## 1.0.2 — 2026-07-17
 

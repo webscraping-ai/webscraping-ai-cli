@@ -4,7 +4,7 @@ import { buildFieldsOptions } from '../lib/buildRequest.js';
 import { resolveApiKey } from '../lib/config.js';
 import { addCommonScrapeOptions, parseFields, parseHeaders } from '../lib/options.js';
 import type { CommonRawFlags } from '../lib/options.js';
-import { emit } from '../lib/output.js';
+import { createEmitter } from '../lib/output.js';
 import { createClient } from '../lib/sdk.js';
 import { urlIterator } from '../lib/stdin.js';
 
@@ -30,10 +30,12 @@ export function extractCommand(): Command {
     const fields = await parseFields(opts.fields);
     const client = createClient({ apiKey, requestTimeoutMs: opts.timeout });
 
+    const write = createEmitter(opts);
+
     for await (const target of urlIterator(url)) {
       const sdkOptions = buildFieldsOptions(target, fields, opts, { headers });
       const result = await client.fields(sdkOptions);
-      await emit(result, opts);
+      await write(result);
     }
   });
 

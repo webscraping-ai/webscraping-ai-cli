@@ -110,12 +110,7 @@ describe('buildSelectedOptions', () => {
 
 describe('buildSelectedMultipleOptions', () => {
   it('attaches selectors array', () => {
-    const result = buildSelectedMultipleOptions(
-      'https://example.com',
-      ['h1', '.price'],
-      {},
-      {},
-    );
+    const result = buildSelectedMultipleOptions('https://example.com', ['h1', '.price'], {}, {});
     expect(result).toEqual({ url: 'https://example.com', selectors: ['h1', '.price'] });
   });
 
@@ -128,12 +123,7 @@ describe('buildSelectedMultipleOptions', () => {
 
 describe('buildQuestionOptions', () => {
   it('attaches question and optional --format', () => {
-    const result = buildQuestionOptions(
-      'https://example.com',
-      'In stock?',
-      { format: 'json' },
-      {},
-    );
+    const result = buildQuestionOptions('https://example.com', 'In stock?', { format: 'json' }, {});
     expect(result).toEqual({
       url: 'https://example.com',
       question: 'In stock?',
@@ -166,18 +156,26 @@ describe('buildSerpOptions', () => {
   });
 
   it('never carries scrape options (url, js, proxy, country)', () => {
-    const result = buildSerpOptions('coffee', { js: false, proxy: 'residential', country: 'gb' } as never);
+    const result = buildSerpOptions('coffee', {
+      js: false,
+      proxy: 'residential',
+      country: 'gb',
+    } as never);
     expect(Object.keys(result)).toEqual(['q']);
   });
 
-  it('trims the query and rejects an empty one', () => {
-    expect(buildSerpOptions('  coffee  ').q).toBe('coffee');
+  it('rejects an empty or whitespace-only query but sends others untrimmed', () => {
+    expect(buildSerpOptions('  coffee  ').q).toBe('  coffee  ');
+    expect(buildSerpOptions('#coffee').q).toBe('#coffee');
     expect(() => buildSerpOptions('')).toThrow(/non-empty query/);
     expect(() => buildSerpOptions('   ')).toThrow(/non-empty query/);
+    expect(() => buildSerpOptions('\t\n')).toThrow(/non-empty query/);
   });
 
-  it('rejects --page below 1', () => {
+  it('rejects --page below 1 or non-integer', () => {
     expect(() => buildSerpOptions('coffee', { page: 0 })).toThrow(/--page/);
     expect(() => buildSerpOptions('coffee', { page: -3 })).toThrow(/--page/);
+    expect(() => buildSerpOptions('coffee', { page: 1.5 })).toThrow(/--page/);
+    expect(() => buildSerpOptions('coffee', { page: Number.NaN })).toThrow(/--page/);
   });
 });

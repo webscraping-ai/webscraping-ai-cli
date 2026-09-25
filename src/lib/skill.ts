@@ -48,24 +48,72 @@ export interface EditorAdapter {
  */
 export const EDITORS: readonly EditorAdapter[] = [
   // Claude Code: user-scope skills live under ~/.claude/skills/<name>/
-  { id: 'claude-code', label: 'Claude Code', mode: 'dir', kind: 'user', path: '.claude/skills/webscraping-ai' },
+  {
+    id: 'claude-code',
+    label: 'Claude Code',
+    mode: 'dir',
+    kind: 'user',
+    path: '.claude/skills/webscraping-ai',
+  },
   // Cursor: project-scope rule file. Cursor doesn't have a user-wide skill
   // dir, so this is the editor's "install" surface.
-  { id: 'cursor', label: 'Cursor', mode: 'file', kind: 'project', path: '.cursor/rules/webscraping-ai.mdc' },
+  {
+    id: 'cursor',
+    label: 'Cursor',
+    mode: 'file',
+    kind: 'project',
+    path: '.cursor/rules/webscraping-ai.mdc',
+  },
   // Windsurf: project-scope rules. Same shape as Cursor.
-  { id: 'windsurf', label: 'Windsurf', mode: 'file', kind: 'project', path: '.windsurf/rules/webscraping-ai.md' },
+  {
+    id: 'windsurf',
+    label: 'Windsurf',
+    mode: 'file',
+    kind: 'project',
+    path: '.windsurf/rules/webscraping-ai.md',
+  },
   // Kiro: user-scope steering directory.
   { id: 'kiro', label: 'Kiro', mode: 'dir', kind: 'user', path: '.kiro/steering/webscraping-ai' },
   // OpenCode: project-scope skills (mirrors Claude shape).
-  { id: 'opencode', label: 'OpenCode', mode: 'dir', kind: 'project', path: '.opencode/skills/webscraping-ai' },
+  {
+    id: 'opencode',
+    label: 'OpenCode',
+    mode: 'dir',
+    kind: 'project',
+    path: '.opencode/skills/webscraping-ai',
+  },
   // Gemini CLI: user-scope extension dir with a GEMINI.md.
-  { id: 'gemini', label: 'Gemini CLI', mode: 'file', kind: 'user', path: '.gemini/extensions/webscraping-ai/GEMINI.md' },
+  {
+    id: 'gemini',
+    label: 'Gemini CLI',
+    mode: 'file',
+    kind: 'user',
+    path: '.gemini/extensions/webscraping-ai/GEMINI.md',
+  },
   // GitHub Copilot: project-scope custom instructions file. Single file.
-  { id: 'copilot', label: 'GitHub Copilot', mode: 'file', kind: 'project', path: '.github/copilot-instructions.md' },
+  {
+    id: 'copilot',
+    label: 'GitHub Copilot',
+    mode: 'file',
+    kind: 'project',
+    path: '.github/copilot-instructions.md',
+  },
   // Augment: project-scope rules file.
-  { id: 'augment', label: 'Augment', mode: 'file', kind: 'project', path: '.augment/rules/webscraping-ai.md' },
+  {
+    id: 'augment',
+    label: 'Augment',
+    mode: 'file',
+    kind: 'project',
+    path: '.augment/rules/webscraping-ai.md',
+  },
   // Factory: project-scope rules file.
-  { id: 'factory', label: 'Factory', mode: 'file', kind: 'project', path: '.factory/rules/webscraping-ai.md' },
+  {
+    id: 'factory',
+    label: 'Factory',
+    mode: 'file',
+    kind: 'project',
+    path: '.factory/rules/webscraping-ai.md',
+  },
 ] as const;
 
 export function editorById(id: string): EditorAdapter | undefined {

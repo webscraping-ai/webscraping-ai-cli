@@ -2,13 +2,17 @@
  * SDK adapter.
  *
  * Wraps the published `webscraping-ai` Node SDK. The CLI sends a
- * `from_cli=true` analytics flag on every request (mirrors `from_n8n` and
- * `from_mcp_server` used by the n8n node and MCP server). The SDK's typed
+ * `from_cli=true` analytics flag on the page/AI endpoints (mirrors `from_n8n`
+ * and `from_mcp_server` used by the n8n node and MCP server). It is NOT sent
+ * on `serp` or `account`: the SDK builds those query strings from a fixed set
+ * of keys and drops anything else. The SDK's typed
  * options don't accept arbitrary keys, so we go through a single cast point
  * here rather than scattering casts across each command.
  */
 
 import { WebScrapingAI } from 'webscraping-ai';
+
+import { registerSecret } from './redact.js';
 import type {
   FieldsOptions,
   HtmlOptions,
@@ -30,6 +34,7 @@ export interface CreateClientOptions {
  * every endpoint method. The methods preserve the SDK's public signatures.
  */
 export function createClient(options: CreateClientOptions): WebScrapingAI {
+  registerSecret(options.apiKey);
   const inner = new WebScrapingAI({
     apiKey: options.apiKey,
     timeoutMs: options.requestTimeoutMs,
@@ -58,9 +63,9 @@ export function createClient(options: CreateClientOptions): WebScrapingAI {
         case 'fields':
           return (o: FieldsOptions) => target.fields({ ...o, ...tag });
         case 'serp':
-          // Tag sent for parity; SDK 4.1.0's `serp()` forwards only the known
-          // SERP keys, so `from_cli` doesn't reach the wire until it passes
-          // extras through.
+          // Passed for parity only: SDK 4.1.0's `serp()` forwards just
+          // q/engine/gl/hl/page and drops every other key, so `from_cli` is
+          // not sent on /serp. Accepted limitation, like `account`.
           return (o: SerpOptions) => target.serp({ ...o, ...tag });
         case 'account':
           // `account` takes no options; the SDK builds the request itself, so

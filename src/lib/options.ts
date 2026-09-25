@@ -38,17 +38,11 @@ export function addCommonScrapeOptions(cmd: Command): Command {
     .option('-k, --api-key <key>', 'API key (overrides $WEBSCRAPING_AI_API_KEY and config file)')
     .option('-o, --output <file>', 'write result to FILE instead of stdout')
     .option('--pretty', 'pretty-print JSON output (default on TTY)')
-    .addOption(
-      new Option('--no-pretty', 'force single-line JSON output').conflicts('pretty'),
-    )
+    .option('--no-pretty', 'force single-line JSON output')
     .option('--js', 'execute JS via a headless browser (default: enabled)')
     .option('--no-js', 'disable JS execution (faster, cheaper)')
     .addOption(
-      new Option('--proxy <type>', 'proxy pool').choices([
-        'datacenter',
-        'residential',
-        'stealth',
-      ]),
+      new Option('--proxy <type>', 'proxy pool').choices(['datacenter', 'residential', 'stealth']),
     )
     .option('--country <code>', 'two-letter proxy country code, e.g. us, gb, de')
     .addOption(
@@ -67,6 +61,18 @@ export function addCommonScrapeOptions(cmd: Command): Command {
     .option('--error-on-redirect', 'return error on redirect');
 }
 
+/**
+ * Strict positive-integer check for flags like `serp --page`: digits only,
+ * no leading zero, so `1.5`, `2abc`, `0` and `-1` are all rejected (unlike
+ * `parseInt`, which would read `2abc` as 2). Values beyond
+ * `Number.MAX_SAFE_INTEGER` are rejected too.
+ */
+export function isPositiveIntegerString(value: string): boolean {
+  // isSafeInteger: a huge digit string becomes e.g. 1e+21 on the wire, which
+  // the server's parseInt reads as page 1 (and still bills the search).
+  return /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value));
+}
+
 export function integerParser(value: string): number {
   const n = Number.parseInt(value, 10);
   if (!Number.isFinite(n)) throw new Error(`expected integer, got: ${value}`);
@@ -77,7 +83,9 @@ export function integerParser(value: string): number {
  * Parse a `--headers` argument. Accepts a JSON object literal or `@path` to
  * load JSON from a file. Returns `undefined` if the input is empty.
  */
-export async function parseHeaders(input: string | undefined): Promise<Record<string, string> | undefined> {
+export async function parseHeaders(
+  input: string | undefined,
+): Promise<Record<string, string> | undefined> {
   if (!input || input.trim() === '') return undefined;
   const text = input.startsWith('@') ? await fs.readFile(input.slice(1), 'utf8') : input;
   return parseJsonObject(text, 'headers');

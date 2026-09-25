@@ -9,5 +9,15 @@
   "homepage": "https://github.com/webscraping-ai/webscraping-ai-cli#readme",
   "repository": "https://github.com/webscraping-ai/webscraping-ai-cli",
   "license": "MIT",
-  "keywords": ["web-scraping", "html", "text-extraction", "ai-extraction", "scraping", "cli"]
+  "keywords": [
+    "web-scraping",
+    "html",
+    "text-extraction",
+    "ai-extraction",
+    "scraping",
+    "search",
+    "serp",
+    "google-search",
+    "cli"
+  ]
 }

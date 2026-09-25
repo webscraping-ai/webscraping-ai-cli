@@ -37,16 +37,16 @@ Don't use it for:
 
 The CLI exposes 8 subcommands, one per API endpoint:
 
-| Command            | What it does                                            |
-| ------------------ | ------------------------------------------------------- |
-| `html`             | Fetch the full rendered HTML of a page                  |
-| `text`             | Fetch only the visible text (plain / JSON / XML)        |
-| `selected`         | Fetch HTML of one CSS-selected area                     |
-| `selected-multiple`| Fetch HTML of multiple CSS-selected areas at once       |
-| `ask`              | Ask a natural-language question about a page (AI)       |
-| `extract`          | Extract structured fields with descriptions (AI)        |
-| `serp` / `search`  | Parsed Google search results for a query (JSON)         |
-| `account`          | Show remaining API credits / quota                      |
+| Command             | What it does                                      |
+| ------------------- | ------------------------------------------------- |
+| `html`              | Fetch the full rendered HTML of a page            |
+| `text`              | Fetch only the visible text (plain / JSON / XML)  |
+| `selected`          | Fetch HTML of one CSS-selected area               |
+| `selected-multiple` | Fetch HTML of multiple CSS-selected areas at once |
+| `ask`               | Ask a natural-language question about a page (AI) |
+| `extract`           | Extract structured fields with descriptions (AI)  |
+| `serp` / `search`   | Parsed Google search results for a query (JSON)   |
+| `account`           | Show remaining API credits / quota                |
 
 Authentication: set `WEBSCRAPING_AI_API_KEY`, pass `--api-key`, or run `webscraping-ai auth set <key>` once.
 
@@ -122,7 +122,8 @@ webscraping-ai html https://geo.example.com \
 
 - Text/HTML responses print verbatim. JSON responses pretty-print on a TTY and single-line on a pipe.
 - `--output FILE` writes the result to a file instead of stdout.
-- For batched stdin input, each URL's response is emitted in order, separated by newlines.
+- For batched stdin input, each URL's response is emitted in order, separated by newlines. `-o FILE` collects all of them in FILE. URL lists skip `#` comment lines; `serp -` skips only blank lines, so `#hashtag` queries are searched.
+- `serp --page` must be an integer >= 1 (server caps it at 100); anything else exits with code 2 before any request.
 
 ## See also
 

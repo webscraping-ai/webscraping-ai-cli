@@ -19,6 +19,8 @@ import {
   WebScrapingAIError,
 } from 'webscraping-ai';
 
+import { redactSecrets } from './redact.js';
+
 export const EXIT_CODES = {
   ok: 0,
   generic: 1,
@@ -46,7 +48,15 @@ export function exitCodeFor(err: unknown): number {
   return EXIT_CODES.generic;
 }
 
+/**
+ * Human-readable one-liner for stderr. Always redacted: the API key and any
+ * `api_key=...` pattern are replaced, since error bodies can echo the URL.
+ */
 export function formatError(err: unknown): string {
+  return redactSecrets(rawMessage(err));
+}
+
+function rawMessage(err: unknown): string {
   if (err instanceof APIError) {
     const parts = [err.message];
     if (err.status) parts.push(`(HTTP ${err.status})`);

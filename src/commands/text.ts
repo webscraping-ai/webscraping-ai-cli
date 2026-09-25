@@ -4,7 +4,7 @@ import { buildTextOptions } from '../lib/buildRequest.js';
 import { resolveApiKey } from '../lib/config.js';
 import { addCommonScrapeOptions, parseHeaders } from '../lib/options.js';
 import type { CommonRawFlags } from '../lib/options.js';
-import { emit } from '../lib/output.js';
+import { createEmitter } from '../lib/output.js';
 import { createClient } from '../lib/sdk.js';
 import { urlIterator } from '../lib/stdin.js';
 
@@ -29,13 +29,20 @@ export function textCommand(): Command {
     const headers = await parseHeaders(opts.headers);
     const client = createClient({ apiKey, requestTimeoutMs: opts.timeout });
 
+    const write = createEmitter(opts);
+
     for await (const target of urlIterator(url)) {
-      const sdkOptions = buildTextOptions(target, opts, { headers }, {
-        textFormat: opts.textFormat,
-        returnLinks: opts.returnLinks,
-      });
+      const sdkOptions = buildTextOptions(
+        target,
+        opts,
+        { headers },
+        {
+          textFormat: opts.textFormat,
+          returnLinks: opts.returnLinks,
+        },
+      );
       const result = await client.text(sdkOptions);
-      await emit(result, opts);
+      await write(result);
     }
   });
 

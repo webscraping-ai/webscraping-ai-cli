@@ -4,12 +4,7 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import {
-  EDITORS,
-  editorById,
-  installSkill,
-  resolveTarget,
-} from '../src/lib/skill.js';
+import { EDITORS, editorById, installSkill, resolveTarget } from '../src/lib/skill.js';
 
 let workdir: string;
 let fakeSource: string;
@@ -79,7 +74,9 @@ describe('installSkill', () => {
     const target = resolveTarget(editor, { home: dest, cwd: workdir });
     const result = await installSkill(target, { sourceDir: fakeSource });
     expect(result.status).toBe('installed');
-    expect(await fs.readFile(join(target.destination, 'SKILL.md'), 'utf8')).toMatch(/test skill body/);
+    expect(await fs.readFile(join(target.destination, 'SKILL.md'), 'utf8')).toMatch(
+      /test skill body/,
+    );
     expect(await fs.readFile(join(target.destination, 'extra.md'), 'utf8')).toMatch(/companion/);
   });
 
