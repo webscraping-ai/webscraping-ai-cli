@@ -121,8 +121,8 @@ webscraping-ai html https://geo.example.com \
 - **`--js` is on by default.** Pass `--no-js` for static pages — it's significantly faster and cheaper.
 - **`selected-multiple` returns nested arrays** (`Array<Array<string>>`) — known API response shape. The outer wrapper holds all matches concatenated; flatten in your script if needed.
 - **`extract` wraps its output** under a `result` key: the parsed shape is `{ "result": { ... } }`.
-- **`serp` costs a flat 15 credits per search** (failed searches aren't charged) and returns at most 10 organic results per page. Optional fields (`snippet`, `date`, `related_searches`, `pagination.next`, `search_information.total_results`) may be absent.
-- **`data` costs 15 credits per request**, including `parse_status` `parse_failed` (fetched but not parsed; `data` may be `null` or partial) and `not_found`. Unsupported URLs or page types (exit 3, HTTP 400) and failed fetches aren't charged. `--transcript` can turn an otherwise successful request into a refunded 500 (exit 7) when the transcript fetch fails. The shape of `data` differs per `provider`/`type`, and `provider`/`type` values grow over time.
+- **`serp` is priced per search** (see https://webscraping.ai/docs; failed searches aren't charged) and returns at most 10 organic results per page. Optional fields (`snippet`, `date`, `related_searches`, `pagination.next`, `search_information.total_results`) may be absent.
+- **`data` is priced per site** (see https://webscraping.ai/docs), including `parse_status` `parse_failed` (fetched but not parsed; `data` may be `null` or partial) and `not_found`. Unsupported URLs or page types (exit 3, HTTP 400) and failed fetches aren't charged. `--transcript` can turn an otherwise successful request into a refunded 500 (exit 7) when the transcript fetch fails. The shape of `data` differs per `provider`/`type`, and `provider`/`type` values grow over time.
 - **API key in URL.** The CLI sends the key as a query-string param. Don't log full requests in shared logs.
 - **Exit codes** are stable per error class (auth → 4, payment → 5, rate-limit → 6, server → 7, timeout → 8, connection → 9). Script around them.
 

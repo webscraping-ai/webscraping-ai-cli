@@ -19,8 +19,8 @@ The package exposes two executables: `webscraping-ai` (primary) and `wsai` (shor
 
 ## Authenticate
 
-[Sign up](https://webscraping.ai/auth/sign_up) to get an API key — the free
-trial includes 2,000 credits, no credit card required. Your key lives in the
+[Sign up](https://webscraping.ai/auth/sign_up) to get an API key — a free
+trial, no credit card required. Your key lives in the
 [dashboard](https://webscraping.ai/dashboard).
 
 Pick one:
@@ -50,9 +50,9 @@ webscraping-ai data <url> [--country us] [--transcript]      # Structured JSON f
 webscraping-ai account                     # Remaining credits / quota
 ```
 
-`serp` (alias `search`) is query-shaped, not URL-shaped: it takes `--engine` (`google`, the default), `--gl` (country), `--hl` (language), `--page` (1-based, 10 results per page) plus `--api-key`/`--output`/`--pretty`, and none of the scrape flags below. It prints the JSON result (`search_parameters`, `search_information`, `organic_results`, `related_searches`, `pagination`). Flat 15 credits per search; failed searches are not charged. `--page` must be an integer >= 1 (pages are 1–100; the server rejects values above 100 with a 400); anything else is a usage error (exit 2) before any request. Multi-word queries don't need quoting; `-` reads one query per line from stdin, skipping only blank lines (a leading `#` is kept as part of the query, e.g. `#coffee`). The CLI's `from_cli` analytics flag is sent on `serp` through the SDK's `params` pass-through.
+`serp` (alias `search`) is query-shaped, not URL-shaped: it takes `--engine` (`google`, the default), `--gl` (country), `--hl` (language), `--page` (1-based, 10 results per page) plus `--api-key`/`--output`/`--pretty`, and none of the scrape flags below. It prints the JSON result (`search_parameters`, `search_information`, `organic_results`, `related_searches`, `pagination`). Priced per search (see [pricing](https://webscraping.ai/docs#serp)); failed searches are not charged. `--page` must be an integer >= 1 (pages are 1–100; the server rejects values above 100 with a 400); anything else is a usage error (exit 2) before any request. Multi-word queries don't need quoting; `-` reads one query per line from stdin, skipping only blank lines (a leading `#` is kept as part of the query, e.g. `#coffee`). The CLI's `from_cli` analytics flag is sent on `serp` through the SDK's `params` pass-through.
 
-`data <url>` returns structured JSON for a public page on a supported site — for example a YouTube video, TikTok profile, X post, LinkedIn company, Instagram reel or Reddit thread. Pass the page's normal URL; the site and page kind are detected server-side and echoed in `request_parameters` (`provider`, `type`), next to `parse_status` (`ok`, `parse_failed` or `not_found`) and `data` (shape depends on the site; `null` when nothing parsed). More sites are added on the server over time, so the CLI never checks the URL itself and sends it exactly as given. An unsupported URL or page type returns a 400 that is not charged (exit 3); its message lists what is supported. 15 credits per request, including `parse_failed`/`not_found` results; failed fetches are not charged. None of the scrape flags below apply; `data` has its own:
+`data <url>` returns structured JSON for a public page on a supported site — for example a YouTube video, TikTok profile, X post, LinkedIn company, Instagram reel or Reddit thread. Pass the page's normal URL; the site and page kind are detected server-side and echoed in `request_parameters` (`provider`, `type`), next to `parse_status` (`ok`, `parse_failed` or `not_found`) and `data` (shape depends on the site; `null` when nothing parsed). More sites are added on the server over time, so the CLI never checks the URL itself and sends it exactly as given. An unsupported URL or page type returns a 400 that is not charged (exit 3); its message lists what is supported. Priced per site (see [pricing](https://webscraping.ai/docs#data)), including `parse_failed`/`not_found` results; unsupported URLs and failed fetches are not charged. None of the scrape flags below apply; `data` has its own:
 
 - `--country <code>`: two-letter country code of the proxy used to fetch the page, `us` by default.
 - `--transcript`: YouTube videos only. Also fetch the video's transcript into `data.transcript`. It's null when no matching captions are available. If the transcript fetch itself fails, the whole request fails with a 500 (exit 7) and is not charged.

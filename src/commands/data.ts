@@ -37,7 +37,7 @@ export function dataCommand(): Command {
   const cmd = new Command('data')
     .description(
       'Structured JSON for a page on a supported site, e.g. YouTube, TikTok, X, LinkedIn, ' +
-        'Instagram, Reddit (wraps /data, 15 credits/request; more sites are added server-side, ' +
+        'Instagram, Reddit (wraps /data, priced per site; more sites are added server-side, ' +
         'an unsupported URL or page type gets a 400, not charged, listing what is supported)',
     )
     .argument('<url>', 'page URL (or `-` to read URLs from stdin, one per line)')

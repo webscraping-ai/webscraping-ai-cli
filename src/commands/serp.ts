@@ -32,7 +32,7 @@ interface SerpFlags extends Omit<SerpRawFlags, 'page'> {
 export function serpCommand(): Command {
   const cmd = new Command('serp')
     .alias('search')
-    .description('Search Google and print parsed results as JSON (wraps /serp, 15 credits/search)')
+    .description('Search Google and print parsed results as JSON (wraps /serp)')
     .argument('<query...>', 'search query (or `-` to read queries from stdin, one per line)')
     .addOption(new Option('--engine <name>', 'search engine (default: google)').choices(['google']))
     .option('--gl <code>', 'two-letter country code for search geolocation (default: us)')
