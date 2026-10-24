@@ -1,10 +1,11 @@
 #!/usr/bin/env tsx
 /**
  * Hand-run smoke test that exercises every CLI subcommand against the live
- * API. Not part of the test suite — costs ~46 credits per full sweep: the
+ * API. Not part of the test suite — costs ~76 credits per full sweep: the
  * page commands run with `--no-js --proxy datacenter`, so html/text/selected/
- * selected-multiple are 1 credit each (4), ask/extract 6 each (12), `serp` a
- * flat 15 and one YouTube `data` call a flat 15. `account` is free, and so is
+ * selected-multiple are 1 credit each (4), ask/extract 6 each (12), `serp` 15
+ * per results page (one 1-page and one 2-page search: 45) and one YouTube
+ * `data` call a flat 15. `account` and `serp-locations` are free, and so is
  * `data https://example.com/`, which must exit 3 (server 400): it proves the
  * server, not the CLI, rejects unsupported sites.
  *
@@ -48,7 +49,7 @@ const target = 'https://example.com';
 const serpQuery = 'coffee machines';
 const dataUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 // Page commands: no JS + datacenter proxy, so each is billed at 1 credit
-// (6 for ask/extract) and the ~46-credit sweep estimate holds.
+// (6 for ask/extract) and the ~76-credit sweep estimate holds.
 const cheap = ['--no-js', '--proxy', 'datacenter'];
 
 function parseJson(out: string): unknown {
@@ -73,6 +74,36 @@ const cases: Case[] = [
         return `search_parameters.q is ${JSON.stringify(r.search_parameters?.q)}, expected ${JSON.stringify(serpQuery)}`;
       }
       return undefined;
+    },
+  },
+  {
+    name: 'serp-location',
+    args: ['serp', serpQuery, '--location', 'Austin, TX', '--pages', '2', '--no-pretty'],
+    check: (out) => {
+      const r = parseJson(out) as {
+        organic_results?: unknown[];
+        search_parameters?: { location_used?: unknown };
+      };
+      const used = r.search_parameters?.location_used;
+      if (typeof used !== 'string' || !used.includes('Austin')) {
+        return `search_parameters.location_used is ${JSON.stringify(used)}, expected it to contain "Austin"`;
+      }
+      if (!Array.isArray(r.organic_results) || r.organic_results.length === 0) {
+        return 'organic_results is empty';
+      }
+      return undefined;
+    },
+  },
+  {
+    name: 'serp-locations',
+    args: ['serp-locations', 'austin', '--limit', '3', '--no-pretty'],
+    check: (out) => {
+      const r = parseJson(out);
+      if (!Array.isArray(r) || r.length === 0) return 'expected a non-empty JSON array';
+      const name = (r[0] as { canonical_name?: unknown }).canonical_name;
+      return typeof name === 'string' && name.includes('Austin')
+        ? undefined
+        : `first canonical_name is ${JSON.stringify(name)}, expected it to contain "Austin"`;
     },
   },
   {

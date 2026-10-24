@@ -20,6 +20,7 @@ import { htmlCommand } from './commands/html.js';
 import { selectedCommand } from './commands/selected.js';
 import { selectedMultipleCommand } from './commands/selectedMultiple.js';
 import { serpCommand } from './commands/serp.js';
+import { serpLocationsCommand } from './commands/serpLocations.js';
 import { setupCommand } from './commands/setupSkill.js';
 import { textCommand } from './commands/text.js';
 import { exitCodeFor, formatError } from './lib/errors.js';
@@ -51,6 +52,7 @@ export function buildProgram(): Command {
   program.addCommand(askCommand());
   program.addCommand(extractCommand());
   program.addCommand(serpCommand());
+  program.addCommand(serpLocationsCommand());
   program.addCommand(dataCommand());
   program.addCommand(accountCommand());
   program.addCommand(authCommand());

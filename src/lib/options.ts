@@ -73,6 +73,17 @@ export function isPositiveIntegerString(value: string): boolean {
   return /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value));
 }
 
+/**
+ * Strict decimal-number check for flags like `serp --lat`/`--lon`: an
+ * optional sign, digits and an optional fraction (`-33.86`, `151`, `30.`, `.5`).
+ * Exponents, hex, `Infinity`, `NaN`, blanks and trailing junk are rejected
+ * (unlike `Number('')`, which is 0). The SDK writes the value as a plain
+ * decimal with at most 7 fractional digits.
+ */
+export function isDecimalString(value: string): boolean {
+  return /^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(value) && Number.isFinite(Number(value));
+}
+
 export function integerParser(value: string): number {
   const n = Number.parseInt(value, 10);
   if (!Number.isFinite(n)) throw new Error(`expected integer, got: ${value}`);

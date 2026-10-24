@@ -15,6 +15,7 @@ import type {
   QuestionOptions,
   SelectedMultipleOptions,
   SelectedOptions,
+  SerpLocationsOptions,
   SerpOptions,
   TextOptions,
 } from 'webscraping-ai';
@@ -135,30 +136,73 @@ export interface SerpRawFlags {
   gl?: string;
   hl?: string;
   page?: number;
+  pages?: number;
+  location?: string;
+  uule?: string;
+  lat?: number;
+  lon?: number;
+  radius?: number;
+}
+
+function checkPositiveInteger(flag: string, value: number | undefined): void {
+  if (value !== undefined && (!Number.isSafeInteger(value) || value < 1)) {
+    throw new Error(`${flag} must be an integer >= 1, got: ${value}`);
+  }
+}
+
+function checkFinite(flag: string, value: number | undefined): void {
+  if (value !== undefined && !Number.isFinite(value)) {
+    throw new Error(`${flag} must be a number, got: ${value}`);
+  }
 }
 
 /**
  * `/serp` is query-shaped: it takes none of the common scrape options, so
- * this deliberately does not go through `buildCommonOptions`. `page` must be
- * an integer >= 1 (the server also rejects anything else with a 400, not
- * billed; checking client-side saves the round trip). Pages are 1-100: the
- * server rejects a page above 100 with a 400.
+ * this deliberately does not go through `buildCommonOptions`. `page`,
+ * `pages` and `radius` must be integers >= 1 and `lat`/`lon` finite numbers
+ * (checking client-side saves a round trip). Ranges (page 1-100, pages 1-5,
+ * radius 1-1000) and which location options combine are left to the server,
+ * which rejects them with a 400 (not billed). `location` and `uule` are sent
+ * as given.
  */
 export function buildSerpOptions(query: string, flags: SerpRawFlags = {}): SerpOptions {
   // Validate on the trimmed value but send the query as the user typed it.
   if (typeof query !== 'string' || query.trim() === '') {
     throw new Error('serp requires a non-empty query');
   }
+  checkPositiveInteger('--page', flags.page);
+  checkPositiveInteger('--pages', flags.pages);
+  checkPositiveInteger('--radius', flags.radius);
+  checkFinite('--lat', flags.lat);
+  checkFinite('--lon', flags.lon);
+
   const out: SerpOptions = { q: query };
   if (flags.engine !== undefined) out.engine = flags.engine;
   if (flags.gl) out.gl = flags.gl;
   if (flags.hl) out.hl = flags.hl;
-  if (flags.page !== undefined) {
-    if (!Number.isSafeInteger(flags.page) || flags.page < 1) {
-      throw new Error(`--page must be an integer >= 1, got: ${flags.page}`);
-    }
-    out.page = flags.page;
-  }
+  if (flags.page !== undefined) out.page = flags.page;
+  if (flags.pages !== undefined) out.pages = flags.pages;
+  if (flags.location !== undefined) out.location = flags.location;
+  if (flags.uule !== undefined) out.uule = flags.uule;
+  if (flags.lat !== undefined) out.lat = flags.lat;
+  if (flags.lon !== undefined) out.lon = flags.lon;
+  if (flags.radius !== undefined) out.radius = flags.radius;
+  return out;
+}
+
+/**
+ * Options for `/serp/locations`. A blank query is omitted, so the server
+ * returns the most populous locations. `limit` must be an integer >= 1 (the
+ * server rejects values above 10 with a 400).
+ */
+export function buildSerpLocationsOptions(
+  query: string | undefined,
+  limit?: number,
+): SerpLocationsOptions {
+  checkPositiveInteger('--limit', limit);
+  const out: SerpLocationsOptions = {};
+  if (query !== undefined && query.trim() !== '') out.q = query;
+  if (limit !== undefined) out.limit = limit;
   return out;
 }
 

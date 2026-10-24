@@ -8,6 +8,7 @@ import {
   buildQuestionOptions,
   buildSelectedMultipleOptions,
   buildSelectedOptions,
+  buildSerpLocationsOptions,
   buildSerpOptions,
   buildTextOptions,
   parseDataParams,
@@ -179,6 +180,63 @@ describe('buildSerpOptions', () => {
     expect(() => buildSerpOptions('coffee', { page: -3 })).toThrow(/--page/);
     expect(() => buildSerpOptions('coffee', { page: 1.5 })).toThrow(/--page/);
     expect(() => buildSerpOptions('coffee', { page: Number.NaN })).toThrow(/--page/);
+  });
+
+  it('maps --pages and the location flags, sending location and uule as given', () => {
+    expect(
+      buildSerpOptions('coffee machines', {
+        pages: 2,
+        location: ' Austin, TX ',
+        radius: 500,
+      }),
+    ).toEqual({ q: 'coffee machines', pages: 2, location: ' Austin, TX ', radius: 500 });
+    expect(buildSerpOptions('coffee', { uule: 'w+CAIQICI' })).toEqual({
+      q: 'coffee',
+      uule: 'w+CAIQICI',
+    });
+    expect(buildSerpOptions('coffee', { lat: -33.86, lon: 151.2093 })).toEqual({
+      q: 'coffee',
+      lat: -33.86,
+      lon: 151.2093,
+    });
+  });
+
+  it('leaves location exclusivity and ranges to the server', () => {
+    expect(
+      buildSerpOptions('coffee', { location: 'Austin, TX', lat: 95, lon: 200, pages: 9 }),
+    ).toEqual({ q: 'coffee', location: 'Austin, TX', lat: 95, lon: 200, pages: 9 });
+  });
+
+  it('rejects --pages and --radius below 1 or non-integer', () => {
+    for (const bad of [0, -1, 1.5, Number.NaN, 1e21]) {
+      expect(() => buildSerpOptions('coffee', { pages: bad })).toThrow(/--pages/);
+      expect(() => buildSerpOptions('coffee', { radius: bad })).toThrow(/--radius/);
+    }
+  });
+
+  it('rejects a non-finite --lat or --lon', () => {
+    for (const bad of [Number.NaN, Infinity, -Infinity]) {
+      expect(() => buildSerpOptions('coffee', { lat: bad, lon: 1 })).toThrow(/--lat/);
+      expect(() => buildSerpOptions('coffee', { lat: 1, lon: bad })).toThrow(/--lon/);
+    }
+  });
+});
+
+describe('buildSerpLocationsOptions', () => {
+  it('sends q and limit when given', () => {
+    expect(buildSerpLocationsOptions('austin', 3)).toEqual({ q: 'austin', limit: 3 });
+    expect(buildSerpLocationsOptions('new york')).toEqual({ q: 'new york' });
+  });
+
+  it('omits a missing or blank query so the most populous locations come back', () => {
+    expect(buildSerpLocationsOptions(undefined)).toEqual({});
+    expect(buildSerpLocationsOptions('   ')).toEqual({});
+  });
+
+  it('rejects --limit below 1 or non-integer', () => {
+    for (const bad of [0, -1, 2.5, Number.NaN]) {
+      expect(() => buildSerpLocationsOptions('austin', bad)).toThrow(/--limit/);
+    }
   });
 });
 

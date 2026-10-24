@@ -105,4 +105,39 @@ describe('createClient analytics tag (real SDK, stubbed fetch)', () => {
       from_cli: 'true',
     });
   });
+
+  it('serp: pages and location options reach the wire, lat/lon as plain decimals', async () => {
+    const urls = stubFetch({ organic_results: [] });
+    const client = createClient({ apiKey: KEY });
+    await client.serp({ q: 'coffee machines', location: 'Austin, TX', pages: 2, radius: 500 });
+    await client.serp({ q: 'coffee', lat: 1e-7, lon: 48 });
+    await client.serp({ q: 'coffee', lat: -33.86, lon: -0 });
+
+    expect(Object.fromEntries(urls[0]!.searchParams)).toEqual({
+      api_key: KEY,
+      q: 'coffee machines',
+      location: 'Austin, TX',
+      pages: '2',
+      radius: '500',
+      from_cli: 'true',
+    });
+    expect(urls[1]!.searchParams.get('lat')).toBe('0.0000001');
+    expect(urls[1]!.searchParams.get('lon')).toBe('48');
+    expect(urls[1]!.searchParams.get('from_cli')).toBe('true');
+    expect(urls[2]!.searchParams.get('lat')).toBe('-33.86');
+    expect(urls[2]!.searchParams.get('lon')).toBe('0');
+  });
+
+  it('serpLocations: hits /serp/locations with q and limit', async () => {
+    const urls = stubFetch([{ id: '1026201', canonical_name: 'Austin,Texas,United States' }]);
+    const result = await createClient({ apiKey: KEY }).serpLocations({ q: 'austin', limit: 3 });
+
+    expect(result).toEqual([{ id: '1026201', canonical_name: 'Austin,Texas,United States' }]);
+    expect(urls[0]!.pathname).toBe('/serp/locations');
+    expect(Object.fromEntries(urls[0]!.searchParams)).toEqual({
+      api_key: KEY,
+      q: 'austin',
+      limit: '3',
+    });
+  });
 });

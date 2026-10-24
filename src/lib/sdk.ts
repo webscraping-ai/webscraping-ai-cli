@@ -5,8 +5,8 @@
  * `from_cli=true` analytics flag on every endpoint except `account` (mirrors
  * `from_n8n` and `from_mcp_server` used by the n8n node and MCP server). On
  * `serp` and `data` it rides in the SDK's `params` pass-through, since those
- * methods drop unknown top-level keys. `account()` takes no options, so it
- * isn't tagged. The SDK's typed
+ * methods drop unknown top-level keys. `account()` takes no options and
+ * `serpLocations()` only `q`/`limit`, so neither is tagged. The SDK's typed
  * options don't accept arbitrary keys, so we go through a single cast point
  * here rather than scattering casts across each command.
  */
@@ -72,6 +72,10 @@ export function createClient(options: CreateClientOptions): WebScrapingAI {
           // `data()` drops unknown top-level keys but sends its `params`
           // pass-through as-is, so the tag goes there (CLI tag wins).
           return (o: DataOptions) => target.data({ ...o, params: { ...o.params, from_cli: true } });
+        case 'serpLocations':
+          // `serpLocations()` sends only `q` and `limit` (no `params`
+          // pass-through), so it isn't tagged — same accepted limitation as `account`.
+          return value.bind(target);
         case 'account':
           // `account` takes no options; the SDK builds the request itself, so
           // there's no seam here for the analytics tag — accepted limitation.

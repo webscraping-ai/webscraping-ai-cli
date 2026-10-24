@@ -46,11 +46,24 @@ webscraping-ai selected-multiple <url> --selector a --selector b ...
 webscraping-ai ask <url> --question "..."  # AI question about the page
 webscraping-ai extract <url> --fields '{"title":"...","price":"..."}'
 webscraping-ai serp <query> [--gl us] [--hl en] [--page 1]  # Parsed Google results (alias: search)
+webscraping-ai serp-locations [query] [--limit 10]          # Names for serp --location
 webscraping-ai data <url> [--country us] [--transcript]      # Structured JSON for a supported site
 webscraping-ai account                     # Remaining credits / quota
 ```
 
-`serp` (alias `search`) is query-shaped, not URL-shaped: it takes `--engine` (`google`, the default), `--gl` (country), `--hl` (language), `--page` (1-based, 10 results per page) plus `--api-key`/`--output`/`--pretty`, and none of the scrape flags below. It prints the JSON result (`search_parameters`, `search_information`, `organic_results`, `related_searches`, `pagination`). Priced per search (see [pricing](https://webscraping.ai/docs#serp)); failed searches are not charged. `--page` must be an integer >= 1 (pages are 1–100; the server rejects values above 100 with a 400); anything else is a usage error (exit 2) before any request. Multi-word queries don't need quoting; `-` reads one query per line from stdin, skipping only blank lines (a leading `#` is kept as part of the query, e.g. `#coffee`). The CLI's `from_cli` analytics flag is sent on `serp` through the SDK's `params` pass-through.
+`serp` (alias `search`) is query-shaped, not URL-shaped: it takes `--engine` (`google`, the default), `--gl` (country), `--hl` (language), `--page` (1-based, 10 results per page), `--pages`, `--location`, `--uule`, `--lat`/`--lon`, `--radius` plus `--api-key`/`--output`/`--pretty`, and none of the scrape flags below. It prints the JSON result (`search_parameters`, `search_information`, `organic_results`, `related_searches`, `pagination`). Billed per results page returned (see https://webscraping.ai/docs#serp); failed searches are not charged. `--page` must be an integer >= 1 (pages are 1–100; the server rejects values above 100 with a 400); anything else is a usage error (exit 2) before any request. Multi-word queries don't need quoting; `-` reads one query per line from stdin, skipping only blank lines (a leading `#` is kept as part of the query, e.g. `#coffee`). The CLI's `from_cli` analytics flag is sent on `serp` through the SDK's `params` pass-through.
+
+Every search runs from one fixed location: `--location`, `--lat` + `--lon` or `--uule`, otherwise the capital of the `--gl` country, so repeats and later pages are consistent. `--gl` defaults to that location's country.
+
+- `--location <name>`: a canonical name (`Austin,Texas,United States`), a looser one (`Austin, TX`; large cities also match local names, e.g. `Москва`) or a location `id` from `serp-locations`. Sent as given. An unknown name returns a 400 (exit 3, not charged).
+- `--uule <value>`: a Google-encoded location (`w+CAIQICI…` or `a+…`).
+- `--lat <deg>` / `--lon <deg>`: the search origin in decimal degrees; use both. Negative values work as written (`--lat -33.86`). Anything but a plain decimal number is a usage error (exit 2).
+- `--radius <m>`: meters around `--location` or `--lat`/`--lon` (1–1000).
+- `--pages <n>`: fetch up to 5 consecutive pages, starting at `--page`, as one de-duplicated list. `position` then counts through the combined list, each result gets a `page` field and `pagination.pages_returned` says how many pages came back. Billed per page returned.
+
+`--pages` and `--radius` must be integers >= 1 (exit 2 otherwise). Which location flags may be combined, and the upper limits, are checked by the server (400, not charged).
+
+`serp-locations [query]` looks up names for `--location` and prints a JSON array of up to 10 locations, most populous first, each with `id`, `name`, `canonical_name`, `country_code`, `target_type`, `reach` and `gps` (`[longitude, latitude]`). Pass a result's `canonical_name` (or `id`) as `serp --location`. It matches English names (`petersburg`); without a query it returns the most populous locations. `--limit <n>` (integer >= 1, at most 10) caps the list. It is free and needs no API key on the server, but the CLI still sends the configured key like every command. Multi-word queries don't need quoting. There is no stdin mode: a lone `-` is a usage error (exit 2).
 
 `data <url>` returns structured JSON for a public page on a supported site — for example a YouTube video, TikTok profile, X post, LinkedIn company, Instagram reel or Reddit thread. Pass the page's normal URL; the site and page kind are detected server-side and echoed in `request_parameters` (`provider`, `type`), next to `parse_status` (`ok`, `parse_failed` or `not_found`) and `data` (shape depends on the site; `null` when nothing parsed). More sites are added on the server over time, so the CLI never checks the URL itself and sends it exactly as given. An unsupported URL or page type returns a 400 that is not charged (exit 3); its message lists what is supported. Priced per site (see [pricing](https://webscraping.ai/docs#data)), including `parse_failed`/`not_found` results; unsupported URLs and failed fetches are not charged. None of the scrape flags below apply; `data` has its own:
 
@@ -134,6 +147,16 @@ cat urls.txt | webscraping-ai extract - \
 
 # Google results for a query, page 2, from Germany in German
 webscraping-ai serp coffee machines --gl de --hl de --page 2
+
+# Two pages of results as searched from Austin, TX
+webscraping-ai serp coffee machines --location 'Austin, TX' --pages 2
+
+# Find the location name to use, then search from it
+webscraping-ai serp-locations austin --limit 3 | jq -r '.[0].canonical_name'
+webscraping-ai serp pizza --location 'Austin,Texas,United States'
+
+# Search from coordinates (Sydney) within 1 km
+webscraping-ai serp cafe --lat -33.8688 --lon 151.2093 --radius 1000
 
 # Just the organic result links
 webscraping-ai search "best espresso grinder" | jq -r '.organic_results[].link'

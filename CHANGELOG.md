@@ -5,10 +5,19 @@ All notable changes to `webscraping-ai-cli` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 1.3.0 — 2026-10-24
+
+### Added
+
+- `serp` flags for where the search runs from and how many pages it returns: `--location` (a name such as `Austin, TX` or `Austin,Texas,United States`, or a location id; sent as given), `--uule`, `--lat`/`--lon` (decimal degrees; negative values work as written, e.g. `--lat -33.86`), `--radius` (meters) and `--pages` (up to 5 consecutive pages as one de-duplicated list, billed per results page returned; see https://webscraping.ai/docs#serp). Every search runs from one fixed location (the location flags, otherwise the capital of the `--gl` country), so repeats and later pages are consistent, and `--gl` defaults to that location's country.
+- `--pages` and `--radius` must be integers >= 1 and `--lat`/`--lon` plain decimal numbers; anything else exits 2 before stdin is read or the key is resolved. Combinations and upper limits are checked by the server (400, exit 3, not charged).
+- `serp-locations [query]` subcommand wrapping the new `/serp/locations` endpoint: looks up names for `serp --location` and prints the JSON array (`id`, `canonical_name`, `country_code`, `target_type`, `reach`, `gps`, …), most populous first. `--limit <n>` (integer >= 1, exit 2 otherwise; at most 10) and the usual `-k`/`-o`/`--pretty`/`--no-pretty`. A lone `-` exits 2 (no stdin mode). Free on the server. `from_cli` isn't sent on it (the SDK method takes only `q` and `limit`), the same as `account`.
+- Bundled agent skill documents the location flags, `--pages` and `serp-locations`.
+- Smoke script adds a `serp --location 'Austin, TX' --pages 2` call (checks `search_parameters.location_used` contains `Austin` and non-empty `organic_results`) and a `serp-locations austin --limit 3` call (checks a non-empty list whose first `canonical_name` contains `Austin`).
 
 ### Changed
 
+- Requires `webscraping-ai` SDK `^4.3.0` (adds the `serp()` location/pages options and `serpLocations()`).
 - Docs: stop stating credit prices (they're set server-side and change); link to https://webscraping.ai/docs pricing instead.
 
 ## 1.2.1 — 2026-09-26

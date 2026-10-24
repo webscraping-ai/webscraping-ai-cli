@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { integerParser, parseFields, parseHeaders } from '../src/lib/options.js';
+import { integerParser, isDecimalString, parseFields, parseHeaders } from '../src/lib/options.js';
 
 let workdir: string;
 
@@ -23,6 +23,34 @@ describe('integerParser', () => {
 
   it('throws on non-integer input', () => {
     expect(() => integerParser('abc')).toThrow(/expected integer/);
+  });
+});
+
+describe('isDecimalString', () => {
+  it('accepts plain decimals, including negative ones', () => {
+    for (const ok of ['-33.86', '151.2093', '0', '48', '+5', '.5', '30.', '-30.', '-0.0000001']) {
+      expect(isDecimalString(ok)).toBe(true);
+    }
+  });
+
+  it('rejects blanks, exponents, specials and trailing junk', () => {
+    for (const bad of [
+      '',
+      ' ',
+      '1e3',
+      '0x10',
+      'NaN',
+      'Infinity',
+      '.',
+      '-.',
+      '-',
+      '1.2.3',
+      '12abc',
+      ' 1',
+    ]) {
+      expect(isDecimalString(bad)).toBe(false);
+    }
+    expect(isDecimalString('9'.repeat(400))).toBe(false);
   });
 });
 

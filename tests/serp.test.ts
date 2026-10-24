@@ -5,10 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as ConfigModule from '../src/lib/config.js';
 
 const serpMock = vi.fn(async (o: unknown) => ({ echoed: o }));
+const serpLocationsMock = vi.fn(async () => [
+  { id: '1026201', canonical_name: 'Austin,Texas,United States', gps: [-97.7431, 30.2672] },
+]);
 const resolveApiKeyMock = vi.fn(async () => 'test-key');
 
 vi.mock('../src/lib/sdk.js', () => ({
-  createClient: () => ({ serp: serpMock }),
+  createClient: () => ({ serp: serpMock, serpLocations: serpLocationsMock }),
 }));
 vi.mock('../src/lib/config.js', async (importOriginal) => ({
   ...(await importOriginal<typeof ConfigModule>()),
@@ -34,8 +37,8 @@ async function parseOpts(name: string, args: string[]): Promise<Record<string, u
   return cmd.opts();
 }
 
-async function runSerp(args: string[]): Promise<unknown> {
-  const cmd = command('serp');
+async function run(name: string, args: string[]): Promise<unknown> {
+  const cmd = command(name);
   try {
     await cmd.parseAsync(args, { from: 'user' });
     return undefined;
@@ -44,8 +47,25 @@ async function runSerp(args: string[]): Promise<unknown> {
   }
 }
 
+const runSerp = (args: string[]): Promise<unknown> => run('serp', args);
+
+/** Run with stdout captured; returns the error (if any) and what was written. */
+async function runCaptured(name: string, args: string[]): Promise<{ err: unknown; out: string }> {
+  let out = '';
+  const write = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+    out += String(chunk);
+    return true;
+  });
+  try {
+    return { err: await run(name, args), out };
+  } finally {
+    write.mockRestore();
+  }
+}
+
 beforeEach(() => {
   serpMock.mockClear();
+  serpLocationsMock.mockClear();
   resolveApiKeyMock.mockClear();
 });
 
@@ -95,4 +115,115 @@ describe('serp --page validation', () => {
     expect((err as CommanderError).exitCode).toBe(EXIT_CODES.usage);
     expect(resolveApiKeyMock).not.toHaveBeenCalled();
   });
+});
+
+describe('serp --pages and location flags', () => {
+  it('passes --pages, --location and --radius through', async () => {
+    const { err } = await runCaptured('serp', [
+      'coffee',
+      'machines',
+      '--pages',
+      '2',
+      '--location',
+      'Austin, TX',
+      '--radius',
+      '500',
+    ]);
+    expect(err).toBeUndefined();
+    expect(serpMock).toHaveBeenCalledWith({
+      q: 'coffee machines',
+      pages: 2,
+      location: 'Austin, TX',
+      radius: 500,
+    });
+  });
+
+  it('passes --uule through as given', async () => {
+    const { err } = await runCaptured('serp', ['coffee', '--uule', 'w+CAIQICIGQXVzdGlu']);
+    expect(err).toBeUndefined();
+    expect(serpMock).toHaveBeenCalledWith({ q: 'coffee', uule: 'w+CAIQICIGQXVzdGlu' });
+  });
+
+  it('reads negative --lat/--lon values instead of treating them as flags', async () => {
+    const { err } = await runCaptured('serp', ['coffee', '--lat', '-33.86', '--lon', '-151.2093']);
+    expect(err).toBeUndefined();
+    expect(serpMock).toHaveBeenCalledWith({ q: 'coffee', lat: -33.86, lon: -151.2093 });
+  });
+
+  it('accepts the --lat=-33.86 form too', async () => {
+    const { err } = await runCaptured('serp', ['coffee', '--lat=-33.86', '--lon=151']);
+    expect(err).toBeUndefined();
+    expect(serpMock).toHaveBeenCalledWith({ q: 'coffee', lat: -33.86, lon: 151 });
+  });
+
+  const bad: Array<[string, string, string]> = [
+    ['--pages', '0', 'wsai.invalidPages'],
+    ['--pages', '1.5', 'wsai.invalidPages'],
+    ['--pages', '2x', 'wsai.invalidPages'],
+    ['--radius', '-5', 'wsai.invalidRadius'],
+    ['--radius', '10.5', 'wsai.invalidRadius'],
+    ['--lat', 'abc', 'wsai.invalidLat'],
+    ['--lat', '', 'wsai.invalidLat'],
+    ['--lat', '1e3', 'wsai.invalidLat'],
+    ['--lon', 'Infinity', 'wsai.invalidLon'],
+    ['--lon', '12,5', 'wsai.invalidLon'],
+  ];
+  for (const [flag, value, code] of bad) {
+    it(`rejects ${flag} ${JSON.stringify(value)} with the usage exit code before resolving the key`, async () => {
+      const err = await runSerp(['-', flag, value]);
+      expect(err).toBeInstanceOf(CommanderError);
+      expect((err as CommanderError).exitCode).toBe(EXIT_CODES.usage);
+      expect((err as CommanderError).code).toBe(code);
+      expect(resolveApiKeyMock).not.toHaveBeenCalled();
+      expect(serpMock).not.toHaveBeenCalled();
+    });
+  }
+});
+
+describe('serp-locations', () => {
+  it('joins the query words, passes --limit and prints the JSON array', async () => {
+    const { err, out } = await runCaptured('serp-locations', [
+      'new',
+      'york',
+      '--limit',
+      '3',
+      '--no-pretty',
+    ]);
+    expect(err).toBeUndefined();
+    expect(serpLocationsMock).toHaveBeenCalledWith({ q: 'new york', limit: 3 });
+    expect(out).toBe(
+      '[{"id":"1026201","canonical_name":"Austin,Texas,United States","gps":[-97.7431,30.2672]}]\n',
+    );
+  });
+
+  it('pretty-prints with --pretty', async () => {
+    const { out } = await runCaptured('serp-locations', ['austin', '--pretty']);
+    expect(out).toContain('\n  {\n    "id": "1026201"');
+  });
+
+  it('sends no q without a query', async () => {
+    const { err } = await runCaptured('serp-locations', []);
+    expect(err).toBeUndefined();
+    expect(serpLocationsMock).toHaveBeenCalledWith({});
+  });
+
+  it('rejects a lone `-` (no stdin mode) with the usage exit code before resolving the key', async () => {
+    const err = await run('serp-locations', ['-']);
+    expect(err).toBeInstanceOf(CommanderError);
+    expect((err as CommanderError).exitCode).toBe(EXIT_CODES.usage);
+    expect((err as CommanderError).code).toBe('wsai.stdinUnsupported');
+    expect(resolveApiKeyMock).not.toHaveBeenCalled();
+    expect(serpLocationsMock).not.toHaveBeenCalled();
+  });
+
+  for (const bad of ['0', '-1', '2.5', 'ten', '']) {
+    it(`rejects --limit ${JSON.stringify(bad)} with the usage exit code before resolving the key`, async () => {
+      const err = await run('serp-locations', ['austin', '--limit', bad]);
+      expect(err).toBeInstanceOf(CommanderError);
+      expect((err as CommanderError).exitCode).toBe(EXIT_CODES.usage);
+      expect((err as CommanderError).code).toBe('wsai.invalidLimit');
+      expect(resolveApiKeyMock).not.toHaveBeenCalled();
+      expect(serpLocationsMock).not.toHaveBeenCalled();
+    });
+  }
 });
