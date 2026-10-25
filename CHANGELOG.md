@@ -30,11 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `data <url>` subcommand wrapping the new `/data` endpoint: structured JSON for a page on a supported site (e.g. YouTube, TikTok, X, LinkedIn, Instagram, Reddit; more are added server-side). Flags: `--country` (proxy country, `us` by default), `--transcript` (YouTube videos only; if the transcript fetch itself fails, the whole request fails with a 500, exit 7, not charged), `--transcript-language`, and a repeatable `--param key=value` passed through as-is for site-specific parameters. `-` reads one URL per line from stdin (stops at the first failing item, like every command); `-o` and `--pretty`/`--no-pretty` work as on `serp`. The scrape flags (`--js`, `--proxy`, `--headers`, …) don't apply and aren't registered on it. 15 credits per request.
+- `data <url>` subcommand wrapping the new `/data` endpoint: structured JSON for a page on a supported site (e.g. YouTube, TikTok, X, LinkedIn, Instagram, Reddit; more are added server-side). Flags: `--country` (proxy country, `us` by default), `--transcript` (YouTube videos only; if the transcript fetch itself fails, the whole request fails with a 500, exit 7, not charged), `--transcript-language`, and a repeatable `--param key=value` passed through as-is for site-specific parameters. `-` reads one URL per line from stdin (stops at the first failing item, like every command); `-o` and `--pretty`/`--no-pretty` work as on `serp`. The scrape flags (`--js`, `--proxy`, `--headers`, …) don't apply and aren't registered on it. Priced per site (see https://webscraping.ai/docs#data).
 - The URL is sent exactly as given and never checked against a list of sites. An unsupported URL or page type returns a 400 that is not charged (exit 3); its message lists what is supported. A blank URL exits 2 before any request.
 - `--param` rejects, with exit 2 before any request: a missing `=` or empty key, a repeated key, `api_key`, `url`, `from_cli`, `__proto__`, and keys that have their own flag (`country`, `transcript`, `transcript_language` — the message names the flag).
 - Bundled agent skill documents when to reach for `data` before scraping a supported site yourself.
-- Smoke script adds a YouTube `data` call (checks `parse_status` `ok`, provider `youtube`, a non-empty `data.title`) and an example.com call that must exit 3 with a server 400 whose message contains `Unsupported URL` (~46 credits per sweep).
+- Smoke script adds a YouTube `data` call (checks `parse_status` `ok`, provider `youtube`, a non-empty `data.title`) and an example.com call that must exit 3 with a server 400 whose message contains `Unsupported URL`.
 
 ### Changed
 
@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `serp <query>` subcommand (alias `search`) wrapping the new `/serp` endpoint: parsed Google search results as JSON. Flags: `--engine` (`google`), `--gl`, `--hl`, `--page <n>`. Multi-word queries don't need quoting; `-` reads one query per line from stdin. The scrape flags (`--js`, `--proxy`, `--country`, …) don't apply and aren't registered on it. Flat 15 credits per search.
+- `serp <query>` subcommand (alias `search`) wrapping the new `/serp` endpoint: parsed Google search results as JSON. Flags: `--engine` (`google`), `--gl`, `--hl`, `--page <n>`. Multi-word queries don't need quoting; `-` reads one query per line from stdin. The scrape flags (`--js`, `--proxy`, `--country`, …) don't apply and aren't registered on it. Priced per search (see https://webscraping.ai/docs#serp).
 - Bundled agent skill documents when to reach for `serp` (query-first research) instead of scraping a search URL.
 
 ### Changed
@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--pretty` / `--no-pretty` no longer fail with "option '--no-pretty' cannot be used with option '--no-pretty'" (a self-conflict on every scrape command and `serp`).
 - `-o/--output` in stdin batch mode kept only the last result; the file is now truncated once and each result appended.
 - Error messages printed to stderr redact the API key and any `api_key=...` pattern (an HTML error body echoing the request URL used to print the key).
-- Smoke script (`npm run smoke`) now checks results, not just exit codes: `serp` needs non-empty `organic_results` and a matching `search_parameters.q`, `selected-multiple` needs a non-empty inner array; signal-killed runs fail; page commands run with `--no-js --proxy datacenter` (~31 credits per sweep); FAIL lines redact the key.
+- Smoke script (`npm run smoke`) now checks results, not just exit codes: `serp` needs non-empty `organic_results` and a matching `search_parameters.q`, `selected-multiple` needs a non-empty inner array; signal-killed runs fail; page commands run with `--no-js --proxy datacenter` to keep the sweep cheap; FAIL lines redact the key.
 
 ## 1.0.2 — 2026-07-17
 
