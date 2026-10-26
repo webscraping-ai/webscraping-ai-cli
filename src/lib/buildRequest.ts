@@ -253,8 +253,8 @@ export function parseDataParams(raw: readonly string[] = []): Record<string, str
 /**
  * `/data` is URL-shaped but takes none of the common scrape options, so this
  * deliberately does not go through `buildCommonOptions`. The URL is passed
- * through unmodified: there is no client-side site check (sites are added
- * server-side; the API answers an unsupported URL with a free 400).
+ * through unmodified: there is no client-side site check (/data accepts any
+ * public web page; the server decides how to parse it).
  */
 export function buildDataOptions(url: string, flags: DataRawFlags = {}): DataOptions {
   if (typeof url !== 'string' || url.trim() === '') {

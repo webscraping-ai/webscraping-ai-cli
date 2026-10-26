@@ -1,6 +1,6 @@
 ---
 name: webscraping-ai
-description: Use the WebScraping.AI CLI to fetch HTML, plain text, or AI-extracted data from any URL, to get parsed Google search results for a query, or to get structured data (/data) for pages on supported sites, e.g. YouTube, TikTok, X, LinkedIn, Instagram, Reddit. Reach for this when you need real page content (including JS-rendered sites) or current search results instead of guessing or relying on stale knowledge.
+description: Use the WebScraping.AI CLI to fetch HTML, plain text, or AI-extracted data from any URL, to get parsed Google search results for a query, or to get structured JSON data (/data) for any public web page. Reach for this when you need real page content (including JS-rendered sites) or current search results instead of guessing or relying on stale knowledge.
 ---
 
 # WebScraping.AI skill
@@ -24,9 +24,8 @@ Reach for `webscraping-ai` when you need to:
 - Extract **structured data** (price, title, author, …) from a page without writing selectors.
 - **Answer a question** about a specific page without scraping the whole thing first.
 - Render **JavaScript-heavy** pages (SPAs, lazy-loaded content) that a plain `curl` won't see.
-- Bypass **anti-bot protection** that's blocking `curl` / `fetch`.
 - Get **current Google search results** for a query (to find candidate URLs, check rankings, or see what's out there) as clean JSON.
-- Get **structured data for a social/media page** (a YouTube video, TikTok profile, X post, LinkedIn company, Instagram reel, Reddit thread, …) without scraping it yourself.
+- Get **structured data for a page** (a product, article, listing, profile, …) without writing selectors or a field list yourself.
 
 Don't use it for:
 
@@ -48,7 +47,7 @@ The CLI exposes 10 subcommands, one per API endpoint:
 | `extract`           | Extract structured fields with descriptions (AI)  |
 | `serp` / `search`   | Parsed Google search results for a query (JSON)   |
 | `serp-locations`    | Look up location names for `serp --location`      |
-| `data`              | Structured JSON for a page on a supported site    |
+| `data`              | Structured JSON for any public web page           |
 | `account`           | Show remaining API credits / quota                |
 
 Authentication: set `WEBSCRAPING_AI_API_KEY`, pass `--api-key`, or run `webscraping-ai auth set <key>` once.
@@ -71,7 +70,7 @@ Every page command supports common flags: `--js/--no-js`, `--proxy {datacenter|r
 
 **Starting from a query, not a URL** (find pages about X, check who ranks for a term, see what Google shows in a given country)? → `serp "<query>"`. Returns JSON with `organic_results` (`position`, `title`, `link`, `domain`, `snippet`), `related_searches`, and `pagination`. Use `--gl`/`--hl` for country/language and `--page 2` for the next 10 results, or `--pages 3` to get pages 1–3 in one call as one de-duplicated list (up to 5; billed per results page returned). For local results ("best pizza" as seen from a city), add `--location 'Austin, TX'` (or `--lat`/`--lon`, optionally `--radius` in meters). Every search runs from one fixed location (otherwise the capital of the `--gl` country), so repeats and later pages are consistent, and `--gl` defaults to that location's country. Not sure of the name? `serp-locations austin` lists matches (English names), most populous first; pass a result's `canonical_name` (or `id`) as `--location`. An unknown location is a 400 (exit 3, not charged). Don't `html` a google.com search URL and parse it yourself — `serp` is cheaper, more reliable, and already parsed. Then feed the `link`s you care about into `text`/`ask`/`extract`.
 
-**The URL is a YouTube video/channel/playlist, TikTok video/profile, X/Twitter post/profile, LinkedIn company/job/profile, Instagram post/reel/profile or Reddit post/subreddit/user**? → try `data <url>` first. It returns `{ request_parameters: { provider, type }, parse_status, data }` with the page's fields already parsed (snake_case; `null` for what the page doesn't show). Add `--transcript` on a YouTube video to also fetch its transcript into `data.transcript` (null when no matching captions are available; `--transcript-language de` picks the caption language, otherwise English, then the first track). If the transcript fetch itself fails, the whole request fails with a 500 (exit 7) and is not charged — retry without `--transcript` if you only need the metadata. Those sites are examples, not the full list: more are added server-side, so just try the URL. An unsupported URL or page type returns a 400 that is not charged (exit 3); its message lists what is supported. Then `extract`/`ask`/`text` are the fallback.
+**Want the page's fields already parsed, without naming them yourself**? → try `data <url>`. It works for any public web page and returns `{ request_parameters: { url, provider, type }, parse_status, data }`, where `provider` is the site the page belongs to (e.g. `toscrape.com`) and `type` the kind of page (e.g. `product`); fields are snake_case, `null` for what the page doesn't show. Some popular sites have dedicated parsers; for other sites, the first request for a new kind of page also has an AI model learn the page's structure, so it can take up to about 45 seconds; afterwards pages of that kind on that site return data straight away. If learning takes longer (or another request is already learning that site), the command fails with `(HTTP 503)` and the message "We're still processing the data structure of this site. Retry in about 30 seconds…" on stderr (exit 7, not charged): run the same command again after about 30 seconds, which usually returns the data. If the page has no structured data (empty page, login wall), it's a 422 `structure_unavailable` (not charged, exit 7) — use `extract` instead. Add `--transcript` on a video page of a site with a dedicated parser to also fetch its transcript into `data.transcript` (null when no matching captions are available; `--transcript-language de` picks the caption language, otherwise English, then the first track). If the transcript fetch itself fails, the whole request fails with a 500 (exit 7) and is not charged — retry without `--transcript` if you only need the metadata. When you need specific fields `data` doesn't return, `extract`/`ask`/`text` are the fallback.
 
 **Need to check available credits**? → `account`.
 
@@ -111,8 +110,10 @@ webscraping-ai serp-locations austin --limit 3 --no-pretty | jq -r '.[0].canonic
 webscraping-ai serp "rust async runtime comparison" --no-pretty | jq -r '.organic_results[0].link' \
   | webscraping-ai text -
 
-# Structured data for a YouTube video (with transcript)
-webscraping-ai data 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' --transcript --no-pretty | jq '.data.title'
+# Structured data for any public page
+# -> { "request_parameters": { "provider": "toscrape.com", "type": "product", ... }, "parse_status": "ok",
+#      "data": { "title": "A Light in the Attic", "price": 51.77, "currency": "GBP", ... } }
+webscraping-ai data 'https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html' --no-pretty | jq '.data.title'
 
 # Pipe a list of URLs through the same command
 cat urls.txt | webscraping-ai text - --output ./articles.ndjson
@@ -129,7 +130,7 @@ webscraping-ai html https://geo.example.com \
 - **`selected-multiple` returns nested arrays** (`Array<Array<string>>`) — known API response shape. The outer wrapper holds all matches concatenated; flatten in your script if needed.
 - **`extract` wraps its output** under a `result` key: the parsed shape is `{ "result": { ... } }`.
 - **`serp` is billed per results page returned** (see https://webscraping.ai/docs#serp; failed searches aren't charged) and returns at most 10 organic results per page. `position` restarts at 1 on every page, except with `--pages` > 1, where it counts through the combined list and each result has a `page` field. Use only one of `--location`, `--lat`+`--lon` or `--uule`; the server rejects other combinations with a 400 (not charged). Optional fields (`snippet`, `date`, `related_searches`, `pagination.next`, `search_information.total_results`) may be absent.
-- **`data` is priced per site** (see https://webscraping.ai/docs), including `parse_status` `parse_failed` (fetched but not parsed; `data` may be `null` or partial) and `not_found`. Unsupported URLs or page types (exit 3, HTTP 400) and failed fetches aren't charged. `--transcript` can turn an otherwise successful request into a refunded 500 (exit 7) when the transcript fetch fails. The shape of `data` differs per `provider`/`type`, and `provider`/`type` values grow over time.
+- **`data` pricing** (see https://webscraping.ai/docs#data): priced per request. `parse_status` `parse_failed` (fetched but not parsed; `data` may be `null` or partial) and `not_found` are charged. The 503 `structure_processing` answer (exit 7), the 422 `structure_unavailable` (exit 7), HTTP 400 rejections (exit 3), redirects to another site (500 `target_redirect`, exit 7) and failed fetches aren't charged. `--transcript` can turn an otherwise successful request into a refunded 500 (exit 7) when the transcript fetch fails. The shape of `data` differs per `provider`/`type`, and both are open sets.
 - **API key in URL.** The CLI sends the key as a query-string param. Don't log full requests in shared logs.
 - **Exit codes** are stable per error class (auth → 4, payment → 5, rate-limit → 6, server → 7, timeout → 8, connection → 9). Script around them.
 

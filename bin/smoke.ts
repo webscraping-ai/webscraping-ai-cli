@@ -1,13 +1,22 @@
 #!/usr/bin/env tsx
 /**
  * Hand-run smoke test that exercises every CLI subcommand against the live
- * API. Not part of the test suite — costs ~76 credits per full sweep: the
- * page commands run with `--no-js --proxy datacenter`, so html/text/selected/
- * selected-multiple are 1 credit each (4), ask/extract 6 each (12), `serp` 15
- * per results page (one 1-page and one 2-page search: 45) and one YouTube
- * `data` call a flat 15. `account` and `serp-locations` are free, and so is
- * `data https://example.com/`, which must exit 3 (server 400): it proves the
- * server, not the CLI, rejects unsupported sites.
+ * API. Not part of the test suite — uses real credits (see
+ * https://webscraping.ai/docs for pricing): the page commands and ask/extract
+ * run with `--no-js --proxy datacenter` to keep the cost down, plus two
+ * `serp` searches (one 1-page and one 2-page, billed per results page
+ * returned) and one `data` call on a page on a site with a dedicated parser.
+ * `account` and `serp-locations` are free. `data-any-site` runs
+ * `data https://example.com/` (a site without a dedicated parser) and passes
+ * on any of the API's documented outcomes: a success envelope
+ * (`request_parameters` present), a 503 `structure_processing` when learning
+ * the structure outlasts the request (exit 7, "(HTTP 503)" on stderr, not
+ * charged), a 422 `structure_unavailable` (exit 7, "(HTTP 422)" on stderr,
+ * not charged), or a 500 `timeout` when extracting the data or loading the
+ * page runs out of time (exit 7, "(HTTP 500)" on stderr, not charged). The
+ * CLI's stderr carries only the message and status, not the body's
+ * `error_code`, so the error cases are matched on status. A success
+ * envelope is charged.
  *
  * Usage:
  *   WEBSCRAPING_AI_API_KEY=... npm run smoke
@@ -41,6 +50,8 @@ interface Case {
   args: string[];
   /** Expected exit code (default 0). Non-zero cases skip the non-empty-stdout check. */
   expectExit?: number;
+  /** Accepted exit codes; overrides `expectExit` when set. Non-zero exits skip the non-empty-stdout check. */
+  acceptExit?: number[];
   /** Return an error string if the output is wrong, or undefined if it's fine. */
   check?: (out: string, err: string) => string | undefined;
 }
@@ -48,8 +59,8 @@ interface Case {
 const target = 'https://example.com';
 const serpQuery = 'coffee machines';
 const dataUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-// Page commands: no JS + datacenter proxy, so each is billed at 1 credit
-// (6 for ask/extract) and the ~76-credit sweep estimate holds.
+// Page commands: no JS + datacenter proxy, so each is billed at the
+// documented minimum.
 const cheap = ['--no-js', '--proxy', 'datacenter'];
 
 function parseJson(out: string): unknown {
@@ -126,13 +137,22 @@ const cases: Case[] = [
     },
   },
   {
-    name: 'data-unsupported',
-    args: ['data', 'https://example.com/'],
-    expectExit: 3,
-    check: (_out, err) =>
-      /\(HTTP 400\)/.test(err) && err.includes('Unsupported URL')
-        ? undefined
-        : 'expected a server 400 (bad-request) with "Unsupported URL" on stderr',
+    name: 'data-any-site',
+    args: ['data', 'https://example.com/', '--no-pretty'],
+    // 0: success envelope on stdout;
+    // 7: 503 structure_processing or 422 structure_unavailable (unmapped API errors),
+    //    or 500 timeout (ServerError).
+    acceptExit: [0, 7],
+    check: (out, err) => {
+      if (out.trim() === '') {
+        return /\(HTTP (503|422|500)\)/.test(err)
+          ? undefined
+          : 'expected a 503 (structure_processing), 422 (structure_unavailable) or 500 (timeout) on stderr';
+      }
+      const r = parseJson(out) as { request_parameters?: unknown };
+      if (r.request_parameters != null) return undefined;
+      return `expected request_parameters, got ${out.slice(0, 120)}`;
+    },
   },
   { name: 'text', args: ['text', target, ...cheap] },
   { name: 'selected', args: ['selected', target, '--selector', 'h1', ...cheap] },
@@ -212,17 +232,18 @@ for (const c of cases) {
   let result: RunResult | undefined;
   try {
     result = await run(c.args);
-    const expectExit = c.expectExit ?? 0;
+    const accepted = c.acceptExit ?? [c.expectExit ?? 0];
     if (result.signal) problem = `killed by ${result.signal}`;
-    else if (result.code !== expectExit) problem = `exit=${result.code}, expected ${expectExit}`;
-    else if (expectExit === 0 && result.out.trim().length === 0) problem = 'empty output';
+    else if (result.code === null || !accepted.includes(result.code)) {
+      problem = `exit=${result.code}, expected ${accepted.join(' or ')}`;
+    } else if (result.code === 0 && result.out.trim().length === 0) problem = 'empty output';
     else problem = c.check?.(result.out, result.err);
   } catch (e) {
     problem = `threw: ${e instanceof Error ? e.message : String(e)}`;
   }
 
   if (!problem && result) {
-    const shown = (c.expectExit ?? 0) === 0 ? result.out : `exit=${result.code} ${result.err}`;
+    const shown = result.code === 0 ? result.out : `exit=${result.code} ${result.err}`;
     console.log(`  ok   ${c.name.padEnd(18)}  ${redact(shown.slice(0, 120)).replace(/\n/g, ' ')}`);
   } else {
     failures += 1;

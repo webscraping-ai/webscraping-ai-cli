@@ -47,7 +47,7 @@ webscraping-ai ask <url> --question "..."  # AI question about the page
 webscraping-ai extract <url> --fields '{"title":"...","price":"..."}'
 webscraping-ai serp <query> [--gl us] [--hl en] [--page 1]  # Parsed Google results (alias: search)
 webscraping-ai serp-locations [query] [--limit 10]          # Names for serp --location
-webscraping-ai data <url> [--country us] [--transcript]      # Structured JSON for a supported site
+webscraping-ai data <url> [--country us] [--transcript]      # Structured JSON for any public page
 webscraping-ai account                     # Remaining credits / quota
 ```
 
@@ -65,12 +65,22 @@ Every search runs from one fixed location: `--location`, `--lat` + `--lon` or `-
 
 `serp-locations [query]` looks up names for `--location` and prints a JSON array of up to 10 locations, most populous first, each with `id`, `name`, `canonical_name`, `country_code`, `target_type`, `reach` and `gps` (`[longitude, latitude]`). Pass a result's `canonical_name` (or `id`) as `serp --location`. It matches English names (`petersburg`); without a query it returns the most populous locations. `--limit <n>` (integer >= 1, at most 10) caps the list. It is free and needs no API key on the server, but the CLI still sends the configured key like every command. Multi-word queries don't need quoting. There is no stdin mode: a lone `-` is a usage error (exit 2).
 
-`data <url>` returns structured JSON for a public page on a supported site — for example a YouTube video, TikTok profile, X post, LinkedIn company, Instagram reel or Reddit thread. Pass the page's normal URL; the site and page kind are detected server-side and echoed in `request_parameters` (`provider`, `type`), next to `parse_status` (`ok`, `parse_failed` or `not_found`) and `data` (shape depends on the site; `null` when nothing parsed). More sites are added on the server over time, so the CLI never checks the URL itself and sends it exactly as given. An unsupported URL or page type returns a 400 that is not charged (exit 3); its message lists what is supported. Priced per site (see [pricing](https://webscraping.ai/docs#data)), including `parse_failed`/`not_found` results; unsupported URLs and failed fetches are not charged. None of the scrape flags below apply; `data` has its own:
+`data <url>` returns structured JSON for any public web page. Pass the page's normal URL; the site the page belongs to and the kind of page are detected server-side and echoed in `request_parameters` (`provider`, e.g. `toscrape.com`; `type`, e.g. `product`), next to `parse_status` (`ok`, `parse_failed` or `not_found`) and `data` (shape depends on the site and page kind; `null` when nothing parsed). Both `provider` and `type` are open sets. The CLI never checks the URL itself and sends it exactly as given. Some popular sites have dedicated parsers with fixed fields; for other sites, the first request for a new kind of page also has an AI model learn the page's structure, so it can take up to about 45 seconds, and afterwards pages of that kind on that site return data straight away. `data` uses a fixed 60-second client timeout, which covers that. Priced per request. See [pricing](https://webscraping.ai/docs#data). `parse_failed`/`not_found` results are charged; failed fetches are not.
+
+How the CLI surfaces the non-200 `/data` answers:
+
+- **503 `structure_processing`**: learning the page's structure took longer than the request, or another request is already learning that site. Not charged. The CLI prints the API's message (`We're still processing the data structure of this site. Retry in about 30 seconds; …`) with `(HTTP 503)` to stderr and exits 7; the body's `retry_after` (30 seconds) isn't printed. Run the same command again after about 30 seconds; the retry can return data (if learning failed meanwhile, it may learn again or answer the 422 below). In a stdin batch it stops the batch, like any failing item.
+- **422 `structure_unavailable`**: no structured data could be found on the page (empty page, login wall, …). Not charged. The CLI prints the error message with `(HTTP 422)` to stderr and exits 7. Use `extract` instead.
+- **400**: the API rejected the request (for example an invalid URL). Not charged; exit 3.
+- **500 `target_redirect`**: the page redirects to another site (redirects within the same site, such as http→https, `www` or a trailing slash, are followed). The message names the redirect target. Not charged; exit 7.
+- **429 `rate_limited`**: too many new kinds of pages started in an hour. Exit 6.
+
+None of the scrape flags below apply; `data` has its own:
 
 - `--country <code>`: two-letter country code of the proxy used to fetch the page, `us` by default.
-- `--transcript`: YouTube videos only. Also fetch the video's transcript into `data.transcript`. It's null when no matching captions are available. If the transcript fetch itself fails, the whole request fails with a 500 (exit 7) and is not charged.
-- `--transcript-language <code>`: caption language to pick, e.g. `en` or `de`. Without it, English is preferred, then the first available track. If the video has no captions in that language, `data.transcript` is null.
-- `--param key=value` (repeatable): site-specific parameters added after this CLI version, sent as-is. A repeated key, `api_key`, `url`, `from_cli`, `__proto__`, or a key that has its own flag (`country`, `transcript`, `transcript_language` — use the flag) is a usage error (exit 2).
+- `--transcript`: video pages on sites with a dedicated parser only. Also fetch the video's transcript into `data.transcript`. It's null when no matching captions are available. If the transcript fetch itself fails, the whole request fails with a 500 (exit 7) and is not charged.
+- `--transcript-language <code>`: with `--transcript`, the caption language to pick, e.g. `en` or `de`. Without it, English is preferred, then the first available track. If the video has no captions in that language, `data.transcript` is null.
+- `--param key=value` (repeatable): extra API parameters added after this CLI version, sent as-is. A repeated key, `api_key`, `url`, `from_cli`, `__proto__`, or a key that has its own flag (`country`, `transcript`, `transcript_language` — use the flag) is a usage error (exit 2).
 - `--api-key`, `--output`, `--pretty`/`--no-pretty`.
 
 `-` reads one URL per line from stdin (blank and `#` lines skipped). Like every URL command, a batch **stops at the first failing item**: earlier results are already written, the remaining URLs are not requested, and the exit code is that error's. With `-o FILE` the file is truncated when the batch starts, then each result is appended. A blank URL or a bad `--param` is a usage error (exit 2) before any request.
@@ -115,18 +125,18 @@ You can also install the skill via the Claude Code [Plugin Marketplace](https://
 
 ## Exit codes
 
-| Code | Meaning                                         |
-| ---- | ----------------------------------------------- |
-| 0    | Success                                         |
-| 2    | Usage error (commander)                         |
-| 3    | 400 Bad Request from the API                    |
-| 4    | 403 Authentication error                        |
-| 5    | 402 Payment Required (out of credits)           |
-| 6    | 429 Rate limit                                  |
-| 7    | 500 Server error (or wrapped target-page error) |
-| 8    | Timeout (504 or local AbortController)          |
-| 9    | Connection / DNS failure                        |
-| 1    | Anything else                                   |
+| Code | Meaning                                                                                  |
+| ---- | ---------------------------------------------------------------------------------------- |
+| 0    | Success                                                                                  |
+| 2    | Usage error (commander)                                                                  |
+| 3    | 400 Bad Request from the API                                                             |
+| 4    | 403 Authentication error                                                                 |
+| 5    | 402 Payment Required (out of credits)                                                    |
+| 6    | 429 Rate limit                                                                           |
+| 7    | 500 Server error (or wrapped target-page error, or another API error status such as 422) |
+| 8    | Timeout (504 or local AbortController)                                                   |
+| 9    | Connection / DNS failure                                                                 |
+| 1    | Anything else                                                                            |
 
 Scripts can branch on these without parsing stderr.
 
@@ -161,11 +171,13 @@ webscraping-ai serp cafe --lat -33.8688 --lon 151.2093 --radius 1000
 # Just the organic result links
 webscraping-ai search "best espresso grinder" | jq -r '.organic_results[].link'
 
-# Structured data for a YouTube video, with its transcript
-webscraping-ai data 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' --transcript | jq '.data.title'
+# Structured data for any public page
+# -> {"request_parameters": {"url": "...", "provider": "toscrape.com", "type": "product"},
+#     "parse_status": "ok", "data": {"title": "A Light in the Attic", "price": 51.77, "currency": "GBP", ...}}
+webscraping-ai data 'https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html' | jq '.data.title'
 
-# Structured data for a list of profile/post URLs, one JSON result per line
-cat social-urls.txt | webscraping-ai data - --no-pretty -o social.ndjson
+# Structured data for a list of page URLs, one JSON result per line
+cat page-urls.txt | webscraping-ai data - --no-pretty -o pages.ndjson
 
 # Headers from a file
 webscraping-ai html https://example.com --headers @./headers.json

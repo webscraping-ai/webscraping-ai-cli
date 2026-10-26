@@ -1,6 +1,6 @@
 {
   "name": "webscraping-ai",
-  "description": "Fetch HTML, text, selected elements, or AI-extracted data from any URL — including JS-rendered pages — parsed Google search results, and structured data for supported sites (YouTube, TikTok, X, LinkedIn, Instagram, Reddit, …), via the WebScraping.AI CLI.",
+  "description": "Fetch HTML, text, selected elements, or AI-extracted data from any URL — including JS-rendered pages — parsed Google search results, and structured JSON data for any public web page, via the WebScraping.AI CLI.",
   "version": "1.3.0",
   "author": {
     "name": "WebScraping.AI",

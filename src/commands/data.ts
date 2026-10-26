@@ -19,16 +19,22 @@ function collect(value: string, previous: string[] = []): string[] {
 }
 
 /**
- * `data <url>` — structured JSON for a page on a supported site (wraps /data).
+ * `data <url>` — structured JSON for any public web page (wraps /data).
  *
- * URL-shaped, but the server picks fetching/proxy/parsing per site, so the
+ * URL-shaped, but the server picks fetching/proxy/parsing per page, so the
  * common scrape flags (`--js`, `--proxy`, `--headers`, …) don't apply and are
- * deliberately not registered. The URL is never checked against a list of
- * sites: new ones are added server-side. An unsupported URL or page type
- * returns a 400 that is not charged (exit code 3); its message lists what is
- * supported. `-` reads one URL per line from stdin (blank and `#` lines
+ * deliberately not registered. The URL is never checked client-side: some
+ * sites have dedicated parsers, and for other pages the API learns the page's
+ * structure on the first request, which can take up to about 45 seconds.
+ * When learning takes longer, or another request is already learning that
+ * site, the API answers HTTP 503
+ * (`error_code: "structure_processing"`, `retry_after`, not charged); the SDK
+ * throws a plain `APIError`, so the message and `(HTTP 503)` go to stderr and
+ * the command exits 7 like other unmapped API errors. A page with no
+ * structured data is a 422 (`structure_unavailable`, not charged), which also
+ * exits 7. `-` reads one URL per line from stdin (blank and `#` lines
  * skipped, and the batch stops at the first failing item, like the other URL
- * commands). `--param key=value` passes site-specific parameters through.
+ * commands). `--param key=value` passes extra parameters through.
  *
  * Usage errors (blank url, malformed/reserved `--param`) exit with code 2
  * before stdin is read or the API key is resolved.
@@ -36,9 +42,9 @@ function collect(value: string, previous: string[] = []): string[] {
 export function dataCommand(): Command {
   const cmd = new Command('data')
     .description(
-      'Structured JSON for a page on a supported site, e.g. YouTube, TikTok, X, LinkedIn, ' +
-        'Instagram, Reddit (wraps /data, priced per site; more sites are added server-side, ' +
-        'an unsupported URL or page type gets a 400, not charged, listing what is supported)',
+      'Structured JSON for any public web page (wraps /data). The first request for a new ' +
+        'kind of page can take up to about 45 seconds; if it takes longer it fails with ' +
+        'HTTP 503 (exit 7, not charged): run it again after about 30 seconds',
     )
     .argument('<url>', 'page URL (or `-` to read URLs from stdin, one per line)')
     .option(
@@ -47,17 +53,13 @@ export function dataCommand(): Command {
     )
     .option(
       '--transcript',
-      'YouTube videos only: also fetch the transcript into data.transcript (null without matching captions; a failed transcript fetch fails the request with a 500, not charged)',
+      'video pages on sites with a dedicated parser only: also fetch the transcript into data.transcript (null without matching captions; a failed transcript fetch fails the request with a 500, not charged)',
     )
     .option(
       '--transcript-language <code>',
-      'caption language to pick, e.g. en or de (default: English, then the first track)',
+      'with --transcript: caption language to pick, e.g. en or de (default: English, then the first track)',
     )
-    .option(
-      '--param <key=value>',
-      'extra site-specific query parameter sent as-is (repeatable)',
-      collect,
-    )
+    .option('--param <key=value>', 'extra query parameter sent as-is (repeatable)', collect)
     .option('-k, --api-key <key>', 'API key (overrides $WEBSCRAPING_AI_API_KEY and config file)')
     .option('-o, --output <file>', 'write result to FILE instead of stdout')
     .option('--pretty', 'pretty-print JSON output (default on TTY)')
