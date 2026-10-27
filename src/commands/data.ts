@@ -49,7 +49,7 @@ export function dataCommand(): Command {
     .argument('<url>', 'page URL (or `-` to read URLs from stdin, one per line)')
     .option(
       '--country <code>',
-      'two-letter country code of the proxy used to fetch the page (default: us)',
+      'two-letter country code of the proxy used to fetch the page (default: us, or the site\'s own country on dedicated country sites such as uk.indeed.com)',
     )
     .option(
       '--transcript',
