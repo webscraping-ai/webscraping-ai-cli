@@ -78,7 +78,7 @@ How the CLI surfaces the non-200 `/data` answers:
 
 None of the scrape flags below apply; `data` has its own:
 
-- `--country <code>`: two-letter country code of the proxy used to fetch the page. Without it, a page on a country site with a dedicated parser (e.g. uk.indeed.com) uses that site's country and everything else uses `us`. Some dedicated parsers use a fixed route and ignore it.
+- `--country <code>`: two-letter country code of the proxy used to fetch the page. Without it, a page on an Indeed country site (e.g. uk.indeed.com) uses that site's country and everything else uses `us`. Some dedicated parsers use a fixed route and ignore it.
 - `--transcript`: video pages on sites with a dedicated parser only. Also fetch the video's transcript into `data.transcript`. It's null when no matching captions are available. If the transcript fetch itself fails, the whole request fails with a 500 (exit 7) and is not charged.
 - `--transcript-language <code>`: with `--transcript`, the caption language to pick, e.g. `en` or `de`. Without it, English is preferred, then the first available track. If the video has no captions in that language, `data.transcript` is null.
 - `--param key=value` (repeatable): extra API parameters added after this CLI version, sent as-is. A repeated key, `api_key`, `url`, `from_cli`, `__proto__`, or a key that has its own flag (`country`, `transcript`, `transcript_language` — use the flag) is a usage error (exit 2).

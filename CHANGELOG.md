@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Docs and help: `--timeout` max is 25000 ms (larger values are capped by the API), not 30000.
 - Docs and help: `selected` without a selector, or with one that matches nothing, fails with a 400 "Element not found" (exit 3); it never returns the whole page.
-- Docs: `data --country` has no fixed `us` default: pages on a country site with a dedicated parser (e.g. uk.indeed.com) use that site's country, everything else `us`.
+- Docs: `data --country` has no fixed `us` default: Indeed country sites (e.g. uk.indeed.com) use that site's country, everything else `us`.
 - Docs: `data` lists the retryable, uncharged 500 `timeout` and `ai_unavailable` errors; the books.toscrape.com example now shows type `book` and currency `£`.
 - Agent skill: drops the claim that `--format text` strips markup (`selected` returns the inner HTML of the first matching element; `--format json` wraps it as `{"result": ...}`); the `--proxy` list includes `auto`; the API documentation link points to https://webscraping.ai/docs.
 - Smoke script: the any-site `data` check names 500 `ai_unavailable` as an accepted error.
