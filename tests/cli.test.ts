@@ -44,6 +44,12 @@ describe('program structure', () => {
     for (const f of ['--js', '--proxy', '--country', '--headers']) expect(flags).not.toContain(f);
   });
 
+  it('accepts every proxy tier, auto included, on the page commands', () => {
+    const html = program.commands.find((c) => c.name() === 'html');
+    const proxy = html?.options.find((o) => o.long === '--proxy');
+    expect(proxy?.argChoices).toEqual(['datacenter', 'residential', 'stealth', 'auto']);
+  });
+
   it('exposes serp-locations with --limit and the output flags only', () => {
     const cmd = program.commands.find((c) => c.name() === 'serp-locations');
     const flags = cmd?.options.map((o) => o.long) ?? [];

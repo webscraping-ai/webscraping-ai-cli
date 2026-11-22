@@ -45,6 +45,10 @@ describe('buildCommonOptions', () => {
     });
   });
 
+  it('forwards proxy auto', () => {
+    expect(buildCommonOptions({ proxy: 'auto' })).toEqual({ proxy: 'auto' });
+  });
+
   it('forwards proxy / country / device / timeout', () => {
     const result = buildCommonOptions({
       proxy: 'residential',
@@ -104,7 +108,7 @@ describe('buildSelectedOptions', () => {
     expect(result).toEqual({ url: 'https://example.com', selector: 'h1', format: 'text' });
   });
 
-  it('omits selector when none given (whole-page HTML)', () => {
+  it('omits selector when none given (the API answers 400 "Element not found")', () => {
     const result = buildSelectedOptions('https://example.com', undefined, {}, {});
     expect(result).toEqual({ url: 'https://example.com' });
     expect(result).not.toHaveProperty('selector');

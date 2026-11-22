@@ -35,7 +35,9 @@ export function buildCommonOptions(
   // when neither passed. Pass through only when explicit, so the API default
   // applies otherwise.
   if (flags.js !== undefined) out.js = flags.js;
-  if (flags.proxy !== undefined) out.proxy = flags.proxy;
+  // The API accepts proxy=auto, but the published SDK's type (4.3.0) predates
+  // it; the SDK forwards the value as-is, so only the type needs widening.
+  if (flags.proxy !== undefined) out.proxy = flags.proxy as CommonRequestOptions['proxy'];
   if (flags.country !== undefined) out.country = flags.country;
   if (flags.device !== undefined) out.device = flags.device;
   if (flags.timeout !== undefined) out.timeout = flags.timeout;

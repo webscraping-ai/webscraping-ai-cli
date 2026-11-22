@@ -52,7 +52,7 @@ The CLI exposes 10 subcommands, one per API endpoint:
 
 Authentication: set `WEBSCRAPING_AI_API_KEY`, pass `--api-key`, or run `webscraping-ai auth set <key>` once.
 
-Every page command supports common flags: `--js/--no-js`, `--proxy {datacenter|residential|stealth}`, `--country <cc>`, `--device {desktop|mobile|tablet}`, `--timeout <ms>`, `--js-timeout <ms>`, `--wait-for <selector>`, `--headers '{"Cookie":"..."}'`, `--output <file>`. `serp` is the exception: it takes a query, not a URL, and only `--engine`, `--gl <cc>`, `--hl <lang>`, `--page <n>`, `--pages <n>`, `--location <name>`, `--uule <value>`, `--lat <deg>`, `--lon <deg>`, `--radius <m>`, `--output`. `serp-locations [query]` takes only `--limit <n>` and `--output`. `data` takes a URL but its own flag set: `--country <cc>` (same meaning as on the page commands: the proxy country, `us` by default), `--transcript`, `--transcript-language <lang>`, `--param key=value`, `--output`. The other scrape flags (`--js`, `--proxy`, `--device`, `--timeout`, `--headers`, …) don't exist on `data`.
+Every page command supports common flags: `--js/--no-js`, `--proxy {datacenter|residential|stealth|auto}`, `--country <cc>`, `--device {desktop|mobile|tablet}`, `--timeout <ms>`, `--js-timeout <ms>`, `--wait-for <selector>`, `--headers '{"Cookie":"..."}'`, `--output <file>`. `serp` is the exception: it takes a query, not a URL, and only `--engine`, `--gl <cc>`, `--hl <lang>`, `--page <n>`, `--pages <n>`, `--location <name>`, `--uule <value>`, `--lat <deg>`, `--lon <deg>`, `--radius <m>`, `--output`. `serp-locations [query]` takes only `--limit <n>` and `--output`. `data` takes a URL but its own flag set: `--country <cc>` (the proxy country; without it, a page on a country site with a dedicated parser such as uk.indeed.com uses that site's country, everything else `us`), `--transcript`, `--transcript-language <lang>`, `--param key=value`, `--output`. The other scrape flags (`--js`, `--proxy`, `--device`, `--timeout`, `--headers`, …) don't exist on `data`.
 
 ## How to pick the right command
 
@@ -60,7 +60,7 @@ Every page command supports common flags: `--js/--no-js`, `--proxy {datacenter|r
 
 **Need just the readable content** (article body, listing text)? → `text`. Returns much less noise than HTML.
 
-**Need one specific element** (the price, the title)? → `selected --selector '.price'`. Combine with `--format text` to avoid HTML wrapping.
+**Need one specific element** (the price, the title)? → `selected --selector '.price'`. It returns the element's HTML, markup included; `--format json` wraps it as `{"result": "..."}`. The selector is required: without one, or if it matches nothing, the API answers 400 "Element not found" (exit 3).
 
 **Need several elements at once**? → `selected-multiple --selector h1 --selector .price --selector '.author'`. One request, one cost.
 
@@ -70,7 +70,7 @@ Every page command supports common flags: `--js/--no-js`, `--proxy {datacenter|r
 
 **Starting from a query, not a URL** (find pages about X, check who ranks for a term, see what Google shows in a given country)? → `serp "<query>"`. Returns JSON with `organic_results` (`position`, `title`, `link`, `domain`, `snippet`), `related_searches`, and `pagination`. Use `--gl`/`--hl` for country/language and `--page 2` for the next 10 results, or `--pages 3` to get pages 1–3 in one call as one de-duplicated list (up to 5; billed per results page returned). For local results ("best pizza" as seen from a city), add `--location 'Austin, TX'` (or `--lat`/`--lon`, optionally `--radius` in meters). Every search runs from one fixed location (otherwise the capital of the `--gl` country), so repeats and later pages are consistent, and `--gl` defaults to that location's country. Not sure of the name? `serp-locations austin` lists matches (English names), most populous first; pass a result's `canonical_name` (or `id`) as `--location`. An unknown location is a 400 (exit 3, not charged). Don't `html` a google.com search URL and parse it yourself — `serp` is cheaper, more reliable, and already parsed. Then feed the `link`s you care about into `text`/`ask`/`extract`.
 
-**Want the page's fields already parsed, without naming them yourself**? → try `data <url>`. It works for any public web page and returns `{ request_parameters: { url, provider, type }, parse_status, data }`, where `provider` is the site the page belongs to (e.g. `toscrape.com`) and `type` the kind of page (e.g. `product`); fields are snake_case, `null` for what the page doesn't show. Some popular sites have dedicated parsers; for other sites, the first request for a new kind of page also has an AI model learn the page's structure, so it can take up to about 45 seconds; afterwards pages of that kind on that site return data straight away. If learning takes longer (or another request is already learning that site), the command fails with `(HTTP 503)` and the message "We're still processing the data structure of this site. Retry in about 30 seconds…" on stderr (exit 7, not charged): run the same command again after about 30 seconds, which usually returns the data. If the page has no structured data (empty page, login wall), it's a 422 `structure_unavailable` (not charged, exit 7) — use `extract` instead. Add `--transcript` on a video page of a site with a dedicated parser to also fetch its transcript into `data.transcript` (null when no matching captions are available; `--transcript-language de` picks the caption language, otherwise English, then the first track). If the transcript fetch itself fails, the whole request fails with a 500 (exit 7) and is not charged — retry without `--transcript` if you only need the metadata. When you need specific fields `data` doesn't return, `extract`/`ask`/`text` are the fallback.
+**Want the page's fields already parsed, without naming them yourself**? → try `data <url>`. It works for any public web page and returns `{ request_parameters: { url, provider, type }, parse_status, data }`, where `provider` is the site the page belongs to (e.g. `toscrape.com`) and `type` the kind of page (e.g. `product`); fields are snake_case, `null` for what the page doesn't show. Some popular sites have dedicated parsers; for other sites, the first request for a new kind of page also has an AI model learn the page's structure, so it can take up to about 45 seconds; afterwards pages of that kind on that site return data straight away. If learning takes longer (or another request is already learning that site), the command fails with `(HTTP 503)` and the message "We're still processing the data structure of this site. Retry in about 30 seconds…" on stderr (exit 7, not charged): run the same command again after about 30 seconds, which usually returns the data. If the page has no structured data (empty page, login wall), it's a 422 `structure_unavailable` (not charged, exit 7) — use `extract` instead. A 500 `timeout` or `ai_unavailable` (AI model busy) is not charged either (exit 7); run it again. Add `--transcript` on a video page of a site with a dedicated parser to also fetch its transcript into `data.transcript` (null when no matching captions are available; `--transcript-language de` picks the caption language, otherwise English, then the first track). If the transcript fetch itself fails, the whole request fails with a 500 (exit 7) and is not charged — retry without `--transcript` if you only need the metadata. When you need specific fields `data` doesn't return, `extract`/`ask`/`text` are the fallback.
 
 **Need to check available credits**? → `account`.
 
@@ -83,8 +83,8 @@ webscraping-ai html https://example.com --no-js
 # Article body as plain text
 webscraping-ai text https://news.example.com/article --text-format plain
 
-# Just the H1, no markup
-webscraping-ai selected https://example.com --selector h1 --format text
+# Just the H1 element's HTML
+webscraping-ai selected https://example.com --selector h1
 
 # Three elements in one request
 webscraping-ai selected-multiple https://shop.example.com/item \
@@ -111,8 +111,8 @@ webscraping-ai serp "rust async runtime comparison" --no-pretty | jq -r '.organi
   | webscraping-ai text -
 
 # Structured data for any public page
-# -> { "request_parameters": { "provider": "toscrape.com", "type": "product", ... }, "parse_status": "ok",
-#      "data": { "title": "A Light in the Attic", "price": 51.77, "currency": "GBP", ... } }
+# -> { "request_parameters": { "provider": "toscrape.com", "type": "book", ... }, "parse_status": "ok",
+#      "data": { "title": "A Light in the Attic", "price": 51.77, "currency": "£", ... } }
 webscraping-ai data 'https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html' --no-pretty | jq '.data.title'
 
 # Pipe a list of URLs through the same command
@@ -143,5 +143,5 @@ webscraping-ai html https://geo.example.com \
 
 ## See also
 
-- API documentation: <https://docs.webscraping.ai>
+- API documentation: <https://webscraping.ai/docs>
 - Source / issues: <https://github.com/webscraping-ai/webscraping-ai-cli>

@@ -74,10 +74,11 @@ How the CLI surfaces the non-200 `/data` answers:
 - **400**: the API rejected the request (for example an invalid URL). Not charged; exit 3.
 - **500 `target_redirect`**: the page redirects to another site (redirects within the same site, such as http→https, `www` or a trailing slash, are followed). The message names the redirect target. Not charged; exit 7.
 - **429 `rate_limited`**: too many new kinds of pages started in an hour. Exit 6.
+- **500 `timeout`** (the fetch timed out) or **500 `ai_unavailable`** (the AI model is busy): not charged; run the command again. Exit 7.
 
 None of the scrape flags below apply; `data` has its own:
 
-- `--country <code>`: two-letter country code of the proxy used to fetch the page, `us` by default.
+- `--country <code>`: two-letter country code of the proxy used to fetch the page. Without it, a page on a country site with a dedicated parser (e.g. uk.indeed.com) uses that site's country and everything else uses `us`. Some dedicated parsers use a fixed route and ignore it.
 - `--transcript`: video pages on sites with a dedicated parser only. Also fetch the video's transcript into `data.transcript`. It's null when no matching captions are available. If the transcript fetch itself fails, the whole request fails with a 500 (exit 7) and is not charged.
 - `--transcript-language <code>`: with `--transcript`, the caption language to pick, e.g. `en` or `de`. Without it, English is preferred, then the first available track. If the video has no captions in that language, `data.transcript` is null.
 - `--param key=value` (repeatable): extra API parameters added after this CLI version, sent as-is. A repeated key, `api_key`, `url`, `from_cli`, `__proto__`, or a key that has its own flag (`country`, `transcript`, `transcript_language` — use the flag) is a usage error (exit 2).
@@ -87,22 +88,22 @@ None of the scrape flags below apply; `data` has its own:
 
 Common flags shared by every scrape command:
 
-| Flag                     | Purpose                                              |
-| ------------------------ | ---------------------------------------------------- |
-| `--js` / `--no-js`       | Toggle JavaScript rendering (default: on)            |
-| `--proxy TYPE`           | `datacenter` (default), `residential`, `stealth`     |
-| `--country CC`           | Two-letter proxy country code                        |
-| `--device TYPE`          | `desktop`, `mobile`, `tablet`                        |
-| `--timeout MS`           | Total page-retrieval timeout (max 30000)             |
-| `--js-timeout MS`        | JS rendering time after page load (max 20000)        |
-| `--wait-for CSS`         | CSS selector to wait for                             |
-| `--headers JSON`         | HTTP headers to forward; inline JSON or `@file.json` |
-| `--custom-proxy URL`     | `http://user:pass@host:port`                         |
-| `--js-script CODE`       | Custom JS to evaluate on the target page             |
-| `--error-on-404`         | Treat 404 responses as errors                        |
-| `--error-on-redirect`    | Treat redirects as errors                            |
-| `--output FILE`          | Write to FILE instead of stdout                      |
-| `--pretty / --no-pretty` | Force pretty / single-line JSON                      |
+| Flag                     | Purpose                                                  |
+| ------------------------ | -------------------------------------------------------- |
+| `--js` / `--no-js`       | Toggle JavaScript rendering (default: on)                |
+| `--proxy TYPE`           | `datacenter` (default), `residential`, `stealth`, `auto` |
+| `--country CC`           | Two-letter proxy country code                            |
+| `--device TYPE`          | `desktop`, `mobile`, `tablet`                            |
+| `--timeout MS`           | Total page-retrieval timeout (max 25000)                 |
+| `--js-timeout MS`        | JS rendering time after page load (max 20000)            |
+| `--wait-for CSS`         | CSS selector to wait for                                 |
+| `--headers JSON`         | HTTP headers to forward; inline JSON or `@file.json`     |
+| `--custom-proxy URL`     | `http://user:pass@host:port`                             |
+| `--js-script CODE`       | Custom JS to evaluate on the target page                 |
+| `--error-on-404`         | Treat 404 responses as errors                            |
+| `--error-on-redirect`    | Treat redirects as errors                                |
+| `--output FILE`          | Write to FILE instead of stdout                          |
+| `--pretty / --no-pretty` | Force pretty / single-line JSON                          |
 
 `<url>` may be `-` to read URLs from stdin (one per line; lines starting with `#` are ignored). With `--output FILE`, a stdin batch writes every result to FILE, one after another (the file is truncated once at the start).
 
@@ -172,8 +173,8 @@ webscraping-ai serp cafe --lat -33.8688 --lon 151.2093 --radius 1000
 webscraping-ai search "best espresso grinder" | jq -r '.organic_results[].link'
 
 # Structured data for any public page
-# -> {"request_parameters": {"url": "...", "provider": "toscrape.com", "type": "product"},
-#     "parse_status": "ok", "data": {"title": "A Light in the Attic", "price": 51.77, "currency": "GBP", ...}}
+# -> {"request_parameters": {"url": "...", "provider": "toscrape.com", "type": "book"},
+#     "parse_status": "ok", "data": {"title": "A Light in the Attic", "price": 51.77, "currency": "£", ...}}
 webscraping-ai data 'https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html' | jq '.data.title'
 
 # Structured data for a list of page URLs, one JSON result per line

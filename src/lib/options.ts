@@ -16,7 +16,7 @@ export interface CommonRawFlags {
   format?: 'text' | 'json';
   pretty?: boolean;
   js?: boolean;
-  proxy?: 'datacenter' | 'residential' | 'stealth';
+  proxy?: 'datacenter' | 'residential' | 'stealth' | 'auto';
   country?: string;
   device?: 'desktop' | 'mobile' | 'tablet';
   timeout?: number;
@@ -42,13 +42,16 @@ export function addCommonScrapeOptions(cmd: Command): Command {
     .option('--js', 'execute JS via a headless browser (default: enabled)')
     .option('--no-js', 'disable JS execution (faster, cheaper)')
     .addOption(
-      new Option('--proxy <type>', 'proxy pool').choices(['datacenter', 'residential', 'stealth']),
+      new Option(
+        '--proxy <type>',
+        'proxy pool (auto tries datacenter, then residential, then stealth)',
+      ).choices(['datacenter', 'residential', 'stealth', 'auto']),
     )
     .option('--country <code>', 'two-letter proxy country code, e.g. us, gb, de')
     .addOption(
       new Option('--device <type>', 'device emulation').choices(['desktop', 'mobile', 'tablet']),
     )
-    .option('--timeout <ms>', 'page-retrieval timeout in ms (max 30000)', integerParser)
+    .option('--timeout <ms>', 'page-retrieval timeout in ms (max 25000)', integerParser)
     .option('--js-timeout <ms>', 'JS rendering time in ms after load (max 20000)', integerParser)
     .option('--wait-for <selector>', 'CSS selector to wait for before returning content')
     .option(

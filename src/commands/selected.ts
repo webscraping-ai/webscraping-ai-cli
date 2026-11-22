@@ -18,7 +18,7 @@ export function selectedCommand(): Command {
     .argument('<url>', 'page URL (or `-` to read URLs from stdin)')
     .option(
       '-s, --selector <css>',
-      'CSS selector for the target element(s); omit for whole-page HTML',
+      'CSS selector of the target element; required by the API (no match fails with 400 "Element not found")',
     )
     .addOption(new Option('--format <fmt>', 'response wrapping').choices(['text', 'json']));
 
