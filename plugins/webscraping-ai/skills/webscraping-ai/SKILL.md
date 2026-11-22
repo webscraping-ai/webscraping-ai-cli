@@ -60,7 +60,7 @@ Every page command supports common flags: `--js/--no-js`, `--proxy {datacenter|r
 
 **Need just the readable content** (article body, listing text)? → `text`. Returns much less noise than HTML.
 
-**Need one specific element** (the price, the title)? → `selected --selector '.price'`. It returns the element's HTML, markup included; `--format json` wraps it as `{"result": "..."}`. The selector is required: without one, or if it matches nothing, the API answers 400 "Element not found" (exit 3).
+**Need one specific element** (the price, the title)? → `selected --selector '.price'`. It returns the inner HTML of the first matching element (child markup included, not the element's own tag); `--format json` wraps it as `{"result": "..."}`. The selector is required: without one, or if it matches nothing, the API answers 400 "Element not found" (exit 3).
 
 **Need several elements at once**? → `selected-multiple --selector h1 --selector .price --selector '.author'`. One request, one cost.
 
@@ -83,7 +83,7 @@ webscraping-ai html https://example.com --no-js
 # Article body as plain text
 webscraping-ai text https://news.example.com/article --text-format plain
 
-# Just the H1 element's HTML
+# Inner HTML of the first H1
 webscraping-ai selected https://example.com --selector h1
 
 # Three elements in one request

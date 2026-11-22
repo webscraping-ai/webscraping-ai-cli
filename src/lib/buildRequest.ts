@@ -90,8 +90,8 @@ export function buildSelectedOptions(
   flags: CommonRawFlags,
   resolved: ResolvedCommonOptions,
 ): SelectedOptions {
-  // `selector` is optional per the OpenAPI spec: omitting it returns the
-  // whole-page HTML. Only attach it when provided. (The installed SDK types
+  // `selector` is optional in the OpenAPI schema, but the API answers a 400
+  // "Element not found" without one. Only attach it when provided. (The installed SDK types
   // still mark it required, so build the object as a partial and cast.)
   const out: Partial<SelectedOptions> = { url, ...buildCommonOptions(flags, resolved) };
   if (selector !== undefined) out.selector = selector;
