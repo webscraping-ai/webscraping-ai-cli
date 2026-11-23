@@ -141,13 +141,13 @@ const cases: Case[] = [
     args: ['data', 'https://example.com/', '--no-pretty'],
     // 0: success envelope on stdout;
     // 7: 503 structure_processing or 422 structure_unavailable (unmapped API errors),
-    //    or 500 timeout (ServerError).
+    //    or 500 timeout / ai_unavailable (ServerError).
     acceptExit: [0, 7],
     check: (out, err) => {
       if (out.trim() === '') {
         return /\(HTTP (503|422|500)\)/.test(err)
           ? undefined
-          : 'expected a 503 (structure_processing), 422 (structure_unavailable) or 500 (timeout) on stderr';
+          : 'expected a 503 (structure_processing), 422 (structure_unavailable) or 500 (timeout/ai_unavailable) on stderr';
       }
       const r = parseJson(out) as { request_parameters?: unknown };
       if (r.request_parameters != null) return undefined;
